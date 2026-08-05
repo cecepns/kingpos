@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import api from "../api/client";
 import { uploadSrc } from "../utils/uploadUrl";
 import { formatIDR } from "../utils/format";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 
 export default function PriceCheckerPage() {
   const [code, setCode] = useState("");
@@ -83,15 +83,26 @@ export default function PriceCheckerPage() {
     const startCamera = async () => {
       try {
         setCameraError("");
-        const scanner = new Html5Qrcode("price-checker-camera-region", { verbose: false });
+        const formatsToSupport = [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+        ];
+        const scanner = new Html5Qrcode("price-checker-camera-region", { formatsToSupport, verbose: false });
         scannerInstance = scanner;
 
         await scanner.start(
           { facingMode: "environment" },
           {
-            fps: 10,
-            qrbox: { width: 260, height: 150 },
+            fps: 15,
+            qrbox: { width: 280, height: 140 },
             disableFlip: true,
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true,
+            },
           },
           (decodedText) => {
             if (isClosed) return;
