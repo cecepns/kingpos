@@ -50,11 +50,19 @@ export default function PriceCheckerPage() {
     setError("");
     try {
       const res = await api.get(`/api/price-checker?code=${encodeURIComponent(query)}`);
-      setData(res.data);
-      setCode("");
+      if (!res.data || !res.data.product) {
+        setData(null);
+        setError(`Produk dengan barcode '${query}' tidak ditemukan dalam sistem.`);
+        toast.error(`Produk '${query}' tidak ditemukan!`);
+      } else {
+        setData(res.data);
+        setCode("");
+      }
     } catch (err) {
       setData(null);
-      setError(err.response?.data?.error || "Produk tidak ditemukan dalam sistem");
+      const errMsg = err.response?.data?.error || `Produk dengan barcode '${query}' tidak ditemukan dalam sistem`;
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -66,41 +74,65 @@ export default function PriceCheckerPage() {
     }
   };
 
-  // Camera QR/Barcode Reader
+  // Camera QR/Barcode Reader effect safely managed
   useEffect(() => {
     if (!cameraScanOpen) return;
-    let html5QrcodeScanner = null;
-    let isStopped = false;
+    let scannerInstance = null;
+    let isClosed = false;
 
     const startCamera = async () => {
       try {
-        html5QrcodeScanner = new Html5Qrcode("price-checker-camera-region");
-        await html5QrcodeScanner.start(
+        setCameraError("");
+        const scanner = new Html5Qrcode("price-checker-camera-region", { verbose: false });
+        scannerInstance = scanner;
+
+        await scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 150 } },
+          {
+            fps: 10,
+            qrbox: { width: 260, height: 150 },
+            disableFlip: true,
+          },
           (decodedText) => {
-            if (isStopped) return;
-            isStopped = true;
+            if (isClosed) return;
+            isClosed = true;
+
+            try {
+              if (typeof window !== "undefined" && navigator?.vibrate) {
+                navigator.vibrate(60);
+              }
+            } catch {}
+
             searchBarcode(decodedText);
             setCameraScanOpen(false);
-            if (html5QrcodeScanner) {
-              html5QrcodeScanner.stop().catch(() => {});
-            }
           },
           () => {}
         );
+
+        if (isClosed) {
+          try { await scanner.stop(); } catch {}
+          try { await scanner.clear(); } catch {}
+        }
       } catch (err) {
-        setCameraError("Gagal membuka kamera HP: " + (err.message || String(err)));
+        if (!isClosed) {
+          setCameraError("Gagal membuka kamera: " + (err?.message || String(err)));
+        }
       }
     };
 
-    const t = setTimeout(startCamera, 300);
+    const timer = setTimeout(startCamera, 200);
 
     return () => {
-      clearTimeout(t);
-      isStopped = true;
-      if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().catch(() => {});
+      isClosed = true;
+      clearTimeout(timer);
+      if (scannerInstance) {
+        try {
+          scannerInstance.stop().then(() => {
+            try { scannerInstance.clear(); } catch {}
+          }).catch(() => {
+            try { scannerInstance.clear(); } catch {}
+          });
+        } catch {}
       }
     };
   }, [cameraScanOpen]);

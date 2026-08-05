@@ -141,39 +141,10 @@ export default function ProductsPage() {
     })();
   }, [refreshCategories]);
 
-  async function handleBarcodeScanLookup(scannedCode) {
+  function handleBarcodeScanLookup(scannedCode) {
     const code = String(scannedCode || "").trim();
     if (!code) return;
-
-    // Selalu set nilai input barcode terlebih dahulu dengan kode yang di-scan
     form.setValue("barcode", code);
-
-    try {
-      const res = await api.get(`/api/price-checker?code=${encodeURIComponent(code)}`);
-      const { product, matchedVariant, tiers } = res.data || {};
-      if (product) {
-        form.setValue("barcode", matchedVariant?.barcode || product.barcode || code);
-        form.setValue("sku", matchedVariant?.sku || product.sku || "");
-        form.setValue("name", matchedVariant ? `${product.name} (${matchedVariant.name})` : product.name);
-        form.setValue("sell_price", Number(matchedVariant?.sell_price || product.sell_price || 0));
-        form.setValue("purchase_price", Number(product.purchase_price || 0));
-        form.setValue("wholesale_price", Number(product.wholesale_price || 0));
-        form.setValue("wholesale_min_qty", Number(product.wholesale_min_qty || 0));
-        form.setValue("unit", product.unit || "PCS");
-        form.setValue("brand", product.brand || "");
-        form.setValue("location", product.location || "");
-        form.setValue("description", product.description || "");
-        if (tiers && tiers.length > 0) {
-          form.setValue("tiers", tiers);
-        }
-        toast.success(`Data produk '${product.name}' berhasil terisi!`);
-      } else {
-        toast.success(`Barcode '${code}' berhasil di-scan & terisi.`);
-      }
-    } catch {
-      // Product not found in DB, keep scanned barcode in field
-      toast.success(`Barcode '${code}' terisi.`);
-    }
   }
 
   // Camera QR/Barcode Reader effect for product modal
