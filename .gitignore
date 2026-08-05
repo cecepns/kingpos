@@ -1,0 +1,28 @@
+# Logs & Environment
+*.log
+.env
+.env.local
+.env.*.local
+.vscode/
+.idea/
+.DS_Store
+
+# Dependencies
+node_modules/
+.pnpm-store/
+yarn-error.log
+
+# Build & Output
+dist/
+build/
+out/
+.vercel
+
+# Project Uploads & Temporary Storage
+backend/uploads*
+server/uploads*
+uploads*
+
+# Misc
+*.tmp
+*.bak
