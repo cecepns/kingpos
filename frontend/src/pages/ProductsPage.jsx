@@ -179,57 +179,63 @@ export default function ProductsPage() {
   // Camera QR/Barcode Reader effect for product modal
   useEffect(() => {
     if (!modalCameraScan) return;
-    let html5QrcodeScanner = null;
-    let isStopped = false;
+    let scannerInstance = null;
+    let isClosed = false;
 
     const startCamera = async () => {
       try {
         setCameraError("");
-        html5QrcodeScanner = new Html5Qrcode("product-form-camera-region");
-        await html5QrcodeScanner.start(
+        const scanner = new Html5Qrcode("product-form-camera-region", { verbose: false });
+        scannerInstance = scanner;
+
+        await scanner.start(
           { facingMode: "environment" },
           {
-            fps: 15,
-            qrbox: { width: 280, height: 160 },
+            fps: 10,
+            qrbox: { width: 260, height: 150 },
             disableFlip: true,
-            rememberLastUsedCamera: true,
-            experimentalFeatures: {
-              useBarCodeDetectorIfSupported: true,
-            },
           },
           (decodedText) => {
-            if (isStopped) return;
-            isStopped = true;
+            if (isClosed) return;
+            isClosed = true;
 
-            // Audio & Vibration Feedback
-            if (typeof window !== "undefined" && window.navigator?.vibrate) {
-              window.navigator.vibrate(80);
-            }
+            // Audio & Vibration Feedback (safely checked)
+            try {
+              if (typeof window !== "undefined" && navigator?.vibrate) {
+                navigator.vibrate(60);
+              }
+            } catch {}
 
             handleBarcodeScanLookup(decodedText);
             setModalCameraScan(false);
-            if (html5QrcodeScanner) {
-              html5QrcodeScanner.stop().then(() => {
-                html5QrcodeScanner.clear();
-              }).catch(() => {});
-            }
           },
           () => {}
         );
+
+        if (isClosed) {
+          try { await scanner.stop(); } catch {}
+          try { await scanner.clear(); } catch {}
+        }
       } catch (err) {
-        setCameraError("Gagal membuka kamera HP: " + (err.message || String(err)));
+        if (!isClosed) {
+          setCameraError("Gagal membuka kamera: " + (err?.message || String(err)));
+        }
       }
     };
 
-    const t = setTimeout(startCamera, 300);
+    const timer = setTimeout(startCamera, 200);
 
     return () => {
-      clearTimeout(t);
-      isStopped = true;
-      if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().then(() => {
-          html5QrcodeScanner.clear();
-        }).catch(() => {});
+      isClosed = true;
+      clearTimeout(timer);
+      if (scannerInstance) {
+        try {
+          scannerInstance.stop().then(() => {
+            try { scannerInstance.clear(); } catch {}
+          }).catch(() => {
+            try { scannerInstance.clear(); } catch {}
+          });
+        } catch {}
       }
     };
   }, [modalCameraScan]);
