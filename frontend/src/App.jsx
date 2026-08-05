@@ -32,9 +32,9 @@ const NotFound = lazy(() => import("./pages/NotFound.jsx"));
 
 function PageLoader() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-6 text-slate-500 dark:text-slate-400">
+    <div className="flex min-h-[100vh] flex-col items-center justify-center gap-3 p-6 text-slate-500 dark:text-slate-400">
       <Loader2 className="h-9 w-9 animate-spin text-teal-600 dark:text-teal-400" />
-      <p className="text-sm font-medium">Memuat aplikasi...</p>
+      <p className="text-sm font-medium">Memuat data...</p>
     </div>
   );
 }
