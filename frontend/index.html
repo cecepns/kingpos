@@ -11,8 +11,19 @@
   <title>King POS</title>
 </head>
 
-<body class="antialiased">
-  <div id="root"></div>
+<body class="antialiased bg-slate-50 dark:bg-slate-900">
+  <div id="root">
+    <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font-family: system-ui, -apple-system, sans-serif; color: #64748b;">
+      <svg style="width: 38px; height: 38px; animation: spin 1s linear infinite; color: #0d9488;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span style="font-size: 14px; font-weight: 500;">Memuat aplikasi...</span>
+    </div>
+    <style>
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+  </div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 
