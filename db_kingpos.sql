@@ -874,6 +874,8 @@ CREATE TABLE `transactions` (
   `discount_total` decimal(18,2) NOT NULL DEFAULT 0.00,
   `tax_percent` decimal(5,2) DEFAULT 0.00,
   `tax_amount` decimal(18,2) DEFAULT 0.00,
+  `additional_fee` decimal(18,2) DEFAULT 0.00,
+  `additional_fee_name` varchar(128) DEFAULT NULL,
   `grand_total` decimal(18,2) NOT NULL DEFAULT 0.00,
   `total_cost` decimal(18,2) NOT NULL DEFAULT 0.00,
   `total_margin` decimal(18,2) NOT NULL DEFAULT 0.00,

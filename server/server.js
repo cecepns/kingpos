@@ -1348,7 +1348,9 @@ async function createPosTransaction(body, userId, conn) {
   const headerDiscount = Math.max(0, Number(discount_total) || 0);
   const totalDiscount = lineDiscountSum + headerDiscount;
   const taxAmount = (grossSubtotal - totalDiscount) * (Number(tax_percent) / 100);
-  const grandTotal = grossSubtotal - totalDiscount + taxAmount;
+  const addFee = Math.max(0, Number(body.additional_fee) || 0);
+  const addFeeName = body.additional_fee_name ? String(body.additional_fee_name).trim() : null;
+  const grandTotal = grossSubtotal - totalDiscount + taxAmount + addFee;
   const totalProfit = grandTotal - totalCost;
 
   const invoice_no = generateInvoiceNo();
@@ -1362,8 +1364,8 @@ async function createPosTransaction(body, userId, conn) {
 
   const [txr] = await conn.query(
     `INSERT INTO transactions (invoice_no, user_id, customer_id, status, subtotal, discount_total, tax_percent, tax_amount,
-      grand_total, total_cost, total_margin, total_profit, notes, sale_date, paid_amount, change_amount)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      additional_fee, additional_fee_name, grand_total, total_cost, total_margin, total_profit, notes, sale_date, paid_amount, change_amount)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       invoice_no,
       userId,
@@ -1373,6 +1375,8 @@ async function createPosTransaction(body, userId, conn) {
       totalDiscount,
       Number(tax_percent),
       taxAmount,
+      addFee,
+      addFeeName,
       grandTotal,
       totalCost,
       totalMargin,

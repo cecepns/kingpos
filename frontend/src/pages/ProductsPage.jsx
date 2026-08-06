@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import toast from "react-hot-toast";
-import { Plus, Pencil, Trash2, ScanBarcode, AlertTriangle, ImageOff, Camera } from "lucide-react";
+import { Plus, Pencil, Trash2, ScanBarcode, AlertTriangle, ImageOff, Camera, Copy } from "lucide-react";
 import Select from "react-select";
 import api from "../api/client";
 import { fetchAllPages } from "../api/fetchAllPages";
@@ -279,6 +279,30 @@ export default function ProductsPage() {
     });
   }
 
+  function openDuplicate(p) {
+    api.get(`/api/products/${p.id}`).then(({ data }) => {
+      form.reset({
+        ...data,
+        id: "",
+        name: `${data.name || ""} (Salinan)`,
+        sku: "",
+        barcode: "",
+        image_path: "",
+        wholesale_price: data.wholesale_price || 0,
+        wholesale_min_qty: data.wholesale_min_qty || 0,
+        variants: (data.variants || []).map((v) => ({ ...v, id: "", sku: "", barcode: "" })),
+        tiers: (data.tiers || []).map((t) => ({ ...t, id: "" })),
+        unit: data.unit || "PCS",
+        location: data.location || "",
+        brand: data.brand || "",
+        supplier_id: data.supplier_id || "",
+        category_ids: data.category_ids || [],
+      });
+      setModal("edit");
+      toast.success("Data produk berhasil diduplikat. Silakan sesuaikan nama dan barcode.");
+    });
+  }
+
   async function onSubmit(values) {
     const stockNum = Number(values.stock);
     const payload = {
@@ -483,7 +507,10 @@ export default function ProductsPage() {
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadImage(p.id, e.target.files[0])} />
                           📷
                         </label>
-                        <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => openEdit(p)}>
+                        <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" title="Duplikat Produk" onClick={() => openDuplicate(p)}>
+                          <Copy className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                        </button>
+                        <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" title="Edit Produk" onClick={() => openEdit(p)}>
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button type="button" className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={() => setDelId(p.id)}>
