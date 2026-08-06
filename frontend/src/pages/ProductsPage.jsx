@@ -460,11 +460,10 @@ export default function ProductsPage() {
           <table className={`${PAGE_TABLE} min-w-[1040px] divide-y divide-slate-100 text-sm dark:divide-slate-800`}>
             <thead className="bg-slate-50 dark:bg-slate-800/80">
               <tr>
+                <th className="min-w-[12rem] px-4 py-3 text-left font-semibold">Nama Produk</th>
                 <th className="whitespace-nowrap px-4 py-3 text-left font-semibold">SKU</th>
                 <th className="whitespace-nowrap px-4 py-3 text-left font-semibold">Status</th>
-                <th className="whitespace-nowrap px-4 py-3 text-left font-semibold">Aksi</th>
                 <th className="whitespace-nowrap px-4 py-3 text-left font-semibold">Foto</th>
-                <th className="min-w-[8rem] px-4 py-3 text-left font-semibold">Nama</th>
                 <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Beli</th>
                 <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Jual</th>
                 <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Stok</th>
@@ -473,6 +472,7 @@ export default function ProductsPage() {
                 <th className="min-w-[6rem] px-4 py-3 text-left font-semibold">Kategori</th>
                 <th className="min-w-[5rem] px-4 py-3 text-left font-semibold">Lokasi</th>
                 <th className="min-w-[5rem] px-4 py-3 text-left font-semibold">Merek</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-semibold">Aksi</th>
                 <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">ID</th>
               </tr>
             </thead>
@@ -486,6 +486,9 @@ export default function ProductsPage() {
               ) : (
                 list.map((p) => (
                   <tr key={p.id} className={Number(p.is_active) === 0 ? "opacity-60" : ""}>
+                    <td className="min-w-[12rem] px-4 py-3 font-bold text-slate-900 dark:text-white">
+                      {p.name || "—"}
+                    </td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-400">{p.sku}</td>
                     <td className="px-4 py-3">
                       {Number(p.is_active) === 0 ? (
@@ -497,26 +500,6 @@ export default function ProductsPage() {
                           Aktif
                         </span>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex flex-nowrap justify-end gap-1">
-                        <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => printBarcode(p)}>
-                          <ScanBarcode className="h-4 w-4" />
-                        </button>
-                        <label className="cursor-pointer rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800">
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadImage(p.id, e.target.files[0])} />
-                          📷
-                        </label>
-                        <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" title="Duplikat Produk" onClick={() => openDuplicate(p)}>
-                          <Copy className="h-4 w-4 text-brand-600 dark:text-brand-400" />
-                        </button>
-                        <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" title="Edit Produk" onClick={() => openEdit(p)}>
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button type="button" className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={() => setDelId(p.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {p.image_path ? (
@@ -547,9 +530,8 @@ export default function ProductsPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 font-medium">{p.name}</td>
                     <td className="px-4 py-3 text-right">{formatIDR(p.purchase_price)}</td>
-                    <td className="px-4 py-3 text-right">{formatIDR(p.sell_price)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{formatIDR(p.sell_price)}</td>
                     <td className="px-4 py-3 text-right font-medium">{p.stock}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-slate-700 dark:text-slate-300">
                       {Number(p.qty_sold || 0).toLocaleString("id-ID")}
@@ -558,6 +540,26 @@ export default function ProductsPage() {
                     <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">{p.categories || "—"}</td>
                     <td className="px-4 py-3 text-xs">{p.location || "—"}</td>
                     <td className="px-4 py-3 text-xs">{p.brand || "—"}</td>
+                    <td className="px-4 py-3 text-left">
+                      <div className="flex flex-nowrap gap-1">
+                        <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" title="Cetak Barcode" onClick={() => printBarcode(p)}>
+                          <ScanBarcode className="h-4 w-4" />
+                        </button>
+                        <label className="cursor-pointer rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" title="Unggah Foto">
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadImage(p.id, e.target.files[0])} />
+                          📷
+                        </label>
+                        <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" title="Duplikat Produk" onClick={() => openDuplicate(p)}>
+                          <Copy className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                        </button>
+                        <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" title="Edit Produk" onClick={() => openEdit(p)}>
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button type="button" className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" title="Hapus Produk" onClick={() => setDelId(p.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-right font-mono text-xs">{String(p.id).padStart(6, "0")}</td>
                   </tr>
                 ))

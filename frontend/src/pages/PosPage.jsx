@@ -1217,7 +1217,7 @@ export default function PosPage() {
               inputMode="none"
               autoFocus
               className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
-              placeholder="Scan barcode USB / Hardware (Enter)"
+              placeholder="Ketik & Scan Barcode..."
               onKeyDown={handleBarcode}
             />
             <button
