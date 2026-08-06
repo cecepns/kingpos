@@ -11,6 +11,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TableSkeleton } from "../components/Skeleton";
 import { PAGE_TABLE, PAGE_TABLE_WRAP, PageStack } from "../components/TableCard";
 import { PaginationBar } from "../components/PaginationBar";
+import { EmptyTableRow } from "../components/EmptyState";
 
 export default function CustomersPage() {
   const [list, setList] = useState([]);
@@ -100,23 +101,31 @@ export default function CustomersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {list.map((c) => (
-                <tr key={c.id}>
-                  <td className="px-4 py-3 font-medium">{c.name}</td>
-                  <td className="px-4 py-3">{c.whatsapp}</td>
-                  <td className="px-4 py-3 capitalize">{c.category}</td>
-                  <td className="px-4 py-3 text-right">{formatIDR(c.total_purchase)}</td>
-                  <td className="px-4 py-3 text-right text-amber-600">{formatIDR(c.balance_receivable)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button type="button" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg" onClick={() => { form.reset(c); setOpen(true); }}>
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button type="button" className="p-2 text-red-500" onClick={() => setDelId(c.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {list.length === 0 ? (
+                <EmptyTableRow
+                  colSpan={6}
+                  title="Belum ada pelanggan"
+                  description="Data pelanggan toko akan muncul di sini"
+                />
+              ) : (
+                list.map((c) => (
+                  <tr key={c.id}>
+                    <td className="px-4 py-3 font-medium">{c.name}</td>
+                    <td className="px-4 py-3">{c.whatsapp}</td>
+                    <td className="px-4 py-3 capitalize">{c.category}</td>
+                    <td className="px-4 py-3 text-right">{formatIDR(c.total_purchase)}</td>
+                    <td className="px-4 py-3 text-right text-amber-600">{formatIDR(c.balance_receivable)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button type="button" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg" onClick={() => { form.reset(c); setOpen(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button type="button" className="p-2 text-red-500" onClick={() => setDelId(c.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}

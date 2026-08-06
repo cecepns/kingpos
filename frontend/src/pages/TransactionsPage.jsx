@@ -12,6 +12,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TableSkeleton } from "../components/Skeleton";
 import { PAGE_TABLE_WIDE, PAGE_TABLE_WRAP, PageStack } from "../components/TableCard";
 import { PaginationBar } from "../components/PaginationBar";
+import { EmptyTableRow } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { useAuthStore } from "../store/authStore";
 import AppDatePicker from "../components/AppDatePicker";
@@ -400,7 +401,14 @@ export default function TransactionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {list.map((x) => (
+              {list.length === 0 ? (
+                <EmptyTableRow
+                  colSpan={7}
+                  title="Belum ada transaksi"
+                  description="Transaksi penjualan yang Anda proses di kasir POS akan muncul di sini"
+                />
+              ) : (
+                list.map((x) => (
                 <tr key={x.id}>
                   <td className="px-4 py-3 font-mono text-xs">{x.invoice_no}</td>
                   <td className="px-4 py-3">{displayTxDate(x)}</td>
@@ -494,7 +502,8 @@ export default function TransactionsPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ))
+            )}
             </tbody>
           </table>
         )}

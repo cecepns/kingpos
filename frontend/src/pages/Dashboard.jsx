@@ -17,6 +17,7 @@ import {
   Cell,
 } from "recharts";
 import { TrendingUp, Wallet, ShoppingBag, AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { EmptyState } from "../components/EmptyState";
 import toast from "react-hot-toast";
 import api from "../api/client";
 import { formatDateID, formatIDR } from "../utils/format";
@@ -375,7 +376,7 @@ export default function Dashboard() {
           </h3>
           <div className="max-h-64 space-y-2 overflow-auto">
             {(data.lowStock || []).length === 0 ? (
-              <p className="text-sm text-slate-500">Semua stok aman</p>
+              <EmptyState title="Stok Aman" description="Semua barang saat ini di atas stok minimal" className="py-4" />
             ) : (
               (data.lowStock || []).map((p) => (
                 <div key={p.id} className="flex justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800">

@@ -9,6 +9,7 @@ import { formatIDR, formatReportDateCell } from "../utils/format";
 import { PAGE_TABLE, PAGE_TABLE_WRAP, PageStack } from "../components/TableCard";
 import { TableSkeleton } from "../components/Skeleton";
 import { PaginationBar } from "../components/PaginationBar";
+import { EmptyTableRow } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import AppDatePicker from "../components/AppDatePicker";
@@ -264,39 +265,47 @@ export default function OperationalExpensePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {rows.map((r) => {
-                  const trxLocked = r.reference && String(r.reference).startsWith("trx:");
-                  return (
-                    <tr key={r.id}>
-                      <td className="px-4 py-3">{formatReportDateCell(r.flow_date)}</td>
-                      <td className="px-4 py-3 text-sm">{r.expense_category_name || "—"}</td>
-                      <td className="px-4 py-3 text-right font-medium text-slate-900 dark:text-white">{formatIDR(r.amount)}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{r.description}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-1">
-                          {!trxLocked ? (
+                {rows.length === 0 ? (
+                  <EmptyTableRow
+                    colSpan={5}
+                    title="Belum ada pengeluaran"
+                    description="Pengeluaran operasional toko yang dicatat akan muncul di sini"
+                  />
+                ) : (
+                  rows.map((r) => {
+                    const trxLocked = r.reference && String(r.reference).startsWith("trx:");
+                    return (
+                      <tr key={r.id}>
+                        <td className="px-4 py-3">{formatReportDateCell(r.flow_date)}</td>
+                        <td className="px-4 py-3 text-sm">{r.expense_category_name || "—"}</td>
+                        <td className="px-4 py-3 text-right font-medium text-slate-900 dark:text-white">{formatIDR(r.amount)}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{r.description}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-1">
+                            {!trxLocked ? (
+                              <button
+                                type="button"
+                                className="rounded-lg p-2 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/30"
+                                title="Edit"
+                                onClick={() => openEdit(r)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                            ) : null}
                             <button
                               type="button"
-                              className="rounded-lg p-2 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/30"
-                              title="Edit"
-                              onClick={() => openEdit(r)}
+                              className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                              title="Hapus"
+                              onClick={() => setDeleteId(r.id)}
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                            title="Hapus"
-                            onClick={() => setDeleteId(r.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           ) : (

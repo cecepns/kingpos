@@ -12,6 +12,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TableSkeleton } from "../components/Skeleton";
 import { PAGE_TABLE, PAGE_TABLE_WRAP, PageStack } from "../components/TableCard";
 import { PaginationBar } from "../components/PaginationBar";
+import { EmptyTableRow } from "../components/EmptyState";
 
 export default function SuppliersPage() {
   const [list, setList] = useState([]);
@@ -111,22 +112,30 @@ export default function SuppliersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {list.map((s) => (
-                <tr key={s.id}>
-                  <td className="px-4 py-3 font-medium">{s.name}</td>
-                  <td className="px-4 py-3">{s.whatsapp || s.phone}</td>
-                  <td className="px-4 py-3 text-right">{formatIDR(s.total_purchase)}</td>
-                  <td className="px-4 py-3 text-right text-red-600">{formatIDR(s.balance_payable)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button type="button" className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => { form.reset(s); setOpen(true); }}>
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button type="button" className="p-2 text-red-500" onClick={() => setDelId(s.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {list.length === 0 ? (
+                <EmptyTableRow
+                  colSpan={5}
+                  title="Belum ada supplier"
+                  description="Data pemasok barang toko Anda akan muncul di sini"
+                />
+              ) : (
+                list.map((s) => (
+                  <tr key={s.id}>
+                    <td className="px-4 py-3 font-medium">{s.name}</td>
+                    <td className="px-4 py-3">{s.whatsapp || s.phone}</td>
+                    <td className="px-4 py-3 text-right">{formatIDR(s.total_purchase)}</td>
+                    <td className="px-4 py-3 text-right text-red-600">{formatIDR(s.balance_payable)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button type="button" className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => { form.reset(s); setOpen(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button type="button" className="p-2 text-red-500" onClick={() => setDelId(s.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}

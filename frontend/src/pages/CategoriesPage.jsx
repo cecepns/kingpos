@@ -9,6 +9,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TableSkeleton } from "../components/Skeleton";
 import { PAGE_TABLE, PAGE_TABLE_WRAP, PageStack } from "../components/TableCard";
 import { PaginationBar } from "../components/PaginationBar";
+import { EmptyTableRow } from "../components/EmptyState";
 import { useAuthStore } from "../store/authStore";
 
 function displayCode(row) {
@@ -114,31 +115,39 @@ export default function CategoriesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {list.map((c, i) => (
-                <tr key={c.id}>
-                  <td className="px-4 py-3 text-slate-500">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                  <td className="px-4 py-3 font-mono text-sm">{displayCode(c)}</td>
-                  <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{c.name}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      className="mr-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
-                      onClick={() => openEdit(c)}
-                    >
-                      Edit
-                    </button>
-                    {isAdmin && (
+              {list.length === 0 ? (
+                <EmptyTableRow
+                  colSpan={4}
+                  title="Belum ada kategori barang"
+                  description="Kategori barang yang Anda tambahkan akan muncul di sini"
+                />
+              ) : (
+                list.map((c, i) => (
+                  <tr key={c.id}>
+                    <td className="px-4 py-3 text-slate-500">{(page - 1) * PAGE_SIZE + i + 1}</td>
+                    <td className="px-4 py-3 font-mono text-sm">{displayCode(c)}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{c.name}</td>
+                    <td className="px-4 py-3 text-right">
                       <button
                         type="button"
-                        className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white"
-                        onClick={() => setDelId(c.id)}
+                        className="mr-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
+                        onClick={() => openEdit(c)}
                       >
-                        Hapus
+                        Edit
                       </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white"
+                          onClick={() => setDelId(c.id)}
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}

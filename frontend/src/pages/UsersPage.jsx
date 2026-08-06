@@ -8,6 +8,7 @@ import { Modal } from "../components/Modal";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PAGE_TABLE, PAGE_TABLE_WRAP, PageStack } from "../components/TableCard";
 import { PaginationBar } from "../components/PaginationBar";
+import { EmptyTableRow } from "../components/EmptyState";
 import { useAuthStore } from "../store/authStore";
 
 export default function UsersPage() {
@@ -149,30 +150,38 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td className="px-3 py-2">{u.name}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{u.email}</td>
-                  <td className="px-3 py-2">{u.role_name}</td>
-                  <td className="px-3 py-2">{u.is_active ? "Ya" : "Tidak"}</td>
-                  <td className="px-3 py-2 text-right">
-                    <div className="flex flex-wrap items-center justify-end gap-1">
-                      <button type="button" className="rounded-lg px-2 py-1 text-brand-600 hover:bg-slate-100 hover:underline dark:hover:bg-slate-800" onClick={() => openEdit(u)}>
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        title={String(u.id) === String(currentUserId) ? "Tidak dapat menghapus akun sendiri" : "Hapus pengguna"}
-                        disabled={String(u.id) === String(currentUserId)}
-                        className="rounded-lg p-2 text-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-950/30"
-                        onClick={() => setDelId(u.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {users.length === 0 ? (
+                <EmptyTableRow
+                  colSpan={5}
+                  title="Belum ada akun pengguna"
+                  description="Akun pengguna sistem akan muncul di sini"
+                />
+              ) : (
+                users.map((u) => (
+                  <tr key={u.id}>
+                    <td className="px-3 py-2">{u.name}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{u.email}</td>
+                    <td className="px-3 py-2">{u.role_name}</td>
+                    <td className="px-3 py-2">{u.is_active ? "Ya" : "Tidak"}</td>
+                    <td className="px-3 py-2 text-right">
+                      <div className="flex flex-wrap items-center justify-end gap-1">
+                        <button type="button" className="rounded-lg px-2 py-1 text-brand-600 hover:bg-slate-100 hover:underline dark:hover:bg-slate-800" onClick={() => openEdit(u)}>
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          title={String(u.id) === String(currentUserId) ? "Tidak dapat menghapus akun sendiri" : "Hapus pengguna"}
+                          disabled={String(u.id) === String(currentUserId)}
+                          className="rounded-lg p-2 text-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-950/30"
+                          onClick={() => setDelId(u.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

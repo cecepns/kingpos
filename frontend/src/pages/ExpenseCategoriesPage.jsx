@@ -7,6 +7,7 @@ import { PAGE_TABLE, PAGE_TABLE_WRAP, PageStack } from "../components/TableCard"
 import { TableSkeleton } from "../components/Skeleton";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Modal } from "../components/Modal";
+import { EmptyTableRow } from "../components/EmptyState";
 
 const TYPES = [
   { value: "operational", label: "Operasional" },
@@ -101,32 +102,40 @@ export default function ExpenseCategoriesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-3 font-medium">{r.name}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 capitalize">{r.type || "—"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        type="button"
-                        className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                        onClick={() => openEdit(r)}
-                        title="Edit kategori"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-                        onClick={() => setDelId(r.id)}
-                        title="Hapus kategori"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {rows.length === 0 ? (
+                <EmptyTableRow
+                  colSpan={3}
+                  title="Belum ada kategori pengeluaran"
+                  description="Kategori pengeluaran operasional akan muncul di sini"
+                />
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.id}>
+                    <td className="px-4 py-3 font-medium">{r.name}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 capitalize">{r.type || "—"}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                          onClick={() => openEdit(r)}
+                          title="Edit kategori"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          onClick={() => setDelId(r.id)}
+                          title="Hapus kategori"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}

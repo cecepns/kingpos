@@ -14,6 +14,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TableSkeleton } from "../components/Skeleton";
 import { PAGE_TABLE, PAGE_TABLE_WRAP, PageStack } from "../components/TableCard";
 import { PaginationBar } from "../components/PaginationBar";
+import { EmptyTableRow } from "../components/EmptyState";
 import { useThemeStore } from "../store/themeStore";
 import JsBarcode from "jsbarcode";
 import { uploadSrc } from "../utils/uploadUrl";
@@ -452,80 +453,88 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {list.map((p) => (
-                <tr key={p.id} className={Number(p.is_active) === 0 ? "opacity-60" : ""}>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-400">{p.sku}</td>
-                  <td className="px-4 py-3">
-                    {Number(p.is_active) === 0 ? (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
-                        Nonaktif
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
-                        Aktif
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex flex-nowrap justify-end gap-1">
-                      <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => printBarcode(p)}>
-                        <ScanBarcode className="h-4 w-4" />
-                      </button>
-                      <label className="cursor-pointer rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadImage(p.id, e.target.files[0])} />
-                        📷
-                      </label>
-                      <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => openEdit(p)}>
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button type="button" className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={() => setDelId(p.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {p.image_path ? (
-                      <div className="relative inline-flex">
-                        <img
-                          src={uploadSrc(p.image_path)}
-                          alt=""
-                          className="h-10 w-10 rounded-xl border border-slate-200 object-cover dark:border-slate-700"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.parentElement.innerHTML = `<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 border border-slate-200 dark:border-slate-700"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><path d="M10.41 10.41a2 2 0 1 1-2.83-2.83"/><line x1="13.5" y1="13.5" x2="6" y2="21"/><line x1="18" y1="12" x2="21" y2="15"/><path d="M3.59 3.59A2 2 0 0 0 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 1.41-.59"/><path d="M21 15V5a2 2 0 0 0-2-2H9"/></svg></div>`;
-                          }}
-                        />
-                        <button
-                          type="button"
-                          title="Hapus gambar"
-                          className="absolute -right-1 -top-1 rounded-full bg-red-600 p-1 text-white shadow hover:bg-red-700"
-                          onClick={() => setRemoveImgId(p.id)}
-                        >
-                          <ImageOff className="h-3 w-3" />
+              {list.length === 0 ? (
+                <EmptyTableRow
+                  colSpan={14}
+                  title="Belum ada produk"
+                  description="Produk yang Anda tambahkan atau impor akan muncul di sini"
+                />
+              ) : (
+                list.map((p) => (
+                  <tr key={p.id} className={Number(p.is_active) === 0 ? "opacity-60" : ""}>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-400">{p.sku}</td>
+                    <td className="px-4 py-3">
+                      {Number(p.is_active) === 0 ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+                          Nonaktif
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+                          Aktif
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex flex-nowrap justify-end gap-1">
+                        <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => printBarcode(p)}>
+                          <ScanBarcode className="h-4 w-4" />
+                        </button>
+                        <label className="cursor-pointer rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800">
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadImage(p.id, e.target.files[0])} />
+                          📷
+                        </label>
+                        <button type="button" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => openEdit(p)}>
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button type="button" className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={() => setDelId(p.id)}>
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500">
-                        <ImageOff className="h-4 w-4" />
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-medium">{p.name}</td>
-                  <td className="px-4 py-3 text-right">{formatIDR(p.purchase_price)}</td>
-                  <td className="px-4 py-3 text-right">{formatIDR(p.sell_price)}</td>
-                  <td className="px-4 py-3 text-right font-medium">{p.stock}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-slate-700 dark:text-slate-300">
-                    {Number(p.qty_sold || 0).toLocaleString("id-ID")}
-                  </td>
-                  <td className="px-4 py-3">{p.unit || "PCS"}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">{p.categories || "—"}</td>
-                  <td className="px-4 py-3 text-xs">{p.location || "—"}</td>
-                  <td className="px-4 py-3 text-xs">{p.brand || "—"}</td>
-                  <td className="px-4 py-3 text-right font-mono text-xs">{String(p.id).padStart(6, "0")}</td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3">
+                      {p.image_path ? (
+                        <div className="relative inline-flex">
+                          <img
+                            src={uploadSrc(p.image_path)}
+                            alt=""
+                            className="h-10 w-10 rounded-xl border border-slate-200 object-cover dark:border-slate-700"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.parentElement.innerHTML = `<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 border border-slate-200 dark:border-slate-700"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><path d="M10.41 10.41a2 2 0 1 1-2.83-2.83"/><line x1="13.5" y1="13.5" x2="6" y2="21"/><line x1="18" y1="12" x2="21" y2="15"/><path d="M3.59 3.59A2 2 0 0 0 3 5v14a2 2 0 0 0 1.41-.59"/><path d="M21 15V5a2 2 0 0 0-2-2H9"/></svg></div>`;
+                            }}
+                          />
+                          <button
+                            type="button"
+                            title="Hapus gambar"
+                            className="absolute -right-1 -top-1 rounded-full bg-red-600 p-1 text-white shadow hover:bg-red-700"
+                            onClick={() => setRemoveImgId(p.id)}
+                          >
+                            <ImageOff className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500">
+                          <ImageOff className="h-4 w-4" />
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 font-medium">{p.name}</td>
+                    <td className="px-4 py-3 text-right">{formatIDR(p.purchase_price)}</td>
+                    <td className="px-4 py-3 text-right">{formatIDR(p.sell_price)}</td>
+                    <td className="px-4 py-3 text-right font-medium">{p.stock}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-700 dark:text-slate-300">
+                      {Number(p.qty_sold || 0).toLocaleString("id-ID")}
+                    </td>
+                    <td className="px-4 py-3">{p.unit || "PCS"}</td>
+                    <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">{p.categories || "—"}</td>
+                    <td className="px-4 py-3 text-xs">{p.location || "—"}</td>
+                    <td className="px-4 py-3 text-xs">{p.brand || "—"}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs">{String(p.id).padStart(6, "0")}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}

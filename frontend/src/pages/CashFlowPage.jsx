@@ -11,6 +11,7 @@ import { Modal } from "../components/Modal";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PAGE_TABLE_WIDE, PAGE_TABLE_WRAP, PageStack } from "../components/TableCard";
 import { PaginationBar } from "../components/PaginationBar";
+import { EmptyTableRow } from "../components/EmptyState";
 import AppDatePicker from "../components/AppDatePicker";
 
 const TYPE_LABEL = { kas: "Kas", bank: "Bank", ewallet: "E-wallet" };
@@ -512,44 +513,52 @@ export default function CashFlowPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="px-4 py-3">{formatReportDateCell(r.flow_date)}</td>
-                <td className="px-4 py-3">{r.account_name}</td>
-                <td className="px-4 py-3 capitalize">{r.type.replace("_", " ")}</td>
-                <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
-                  {r.income_category_name || r.expense_category_name || "—"}
-                </td>
-                <td className="px-4 py-3 text-right">{formatIDR(r.amount)}</td>
-                <td className="px-4 py-3">{r.description}</td>
-                <td className="px-4 py-3 text-right">
-                  {flowRowDeletable(r) ? (
-                    <div className="flex justify-end gap-1">
-                      {flowRowEditable(r) ? (
+            {rows.length === 0 ? (
+              <EmptyTableRow
+                colSpan={7}
+                title="Belum ada transaksi kas"
+                description="Catatan arus kas masuk, keluar, dan transfer antar rekening akan muncul di sini"
+              />
+            ) : (
+              rows.map((r) => (
+                <tr key={r.id}>
+                  <td className="px-4 py-3">{formatReportDateCell(r.flow_date)}</td>
+                  <td className="px-4 py-3">{r.account_name}</td>
+                  <td className="px-4 py-3 capitalize">{r.type.replace("_", " ")}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+                    {r.income_category_name || r.expense_category_name || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-right">{formatIDR(r.amount)}</td>
+                  <td className="px-4 py-3">{r.description}</td>
+                  <td className="px-4 py-3 text-right">
+                    {flowRowDeletable(r) ? (
+                      <div className="flex justify-end gap-1">
+                        {flowRowEditable(r) ? (
+                          <button
+                            type="button"
+                            className="rounded-lg p-2 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/30"
+                            title="Ubah"
+                            onClick={() => openEditFlow(r)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                        ) : null}
                         <button
                           type="button"
-                          className="rounded-lg p-2 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/30"
-                          title="Ubah"
-                          onClick={() => openEditFlow(r)}
+                          className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          title="Hapus"
+                          onClick={() => setDeleteFlowId(r.id)}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                        title="Hapus"
-                        onClick={() => setDeleteFlowId(r.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-slate-400">—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
+                      </div>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

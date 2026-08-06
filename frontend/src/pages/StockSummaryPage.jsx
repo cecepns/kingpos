@@ -5,6 +5,7 @@ import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { TableSkeleton } from "../components/Skeleton";
 import { PAGE_TABLE, PAGE_TABLE_WRAP, PageStack } from "../components/TableCard";
 import { PaginationBar } from "../components/PaginationBar";
+import { EmptyTableRow } from "../components/EmptyState";
 
 function fmtInt(n) {
   return Number(n || 0).toLocaleString("id-ID");
@@ -73,17 +74,25 @@ export default function StockSummaryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {list.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-3 font-mono text-sm">{r.sku}</td>
-                  <td className="px-4 py-3 font-medium">{r.name}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{r.categories || "—"}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{fmtInt(r.qty_in)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{fmtInt(r.qty_out)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-amber-700 dark:text-amber-400">{fmtInt(r.qty_adjust)}</td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{fmtInt(r.balance)}</td>
-                </tr>
-              ))}
+              {list.length === 0 ? (
+                <EmptyTableRow
+                  colSpan={7}
+                  title="Belum ada data stok barang"
+                  description="Ringkasan mutasi dan sisa stok barang akan muncul di sini"
+                />
+              ) : (
+                list.map((r) => (
+                  <tr key={r.id}>
+                    <td className="px-4 py-3 font-mono text-sm">{r.sku}</td>
+                    <td className="px-4 py-3 font-medium">{r.name}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{r.categories || "—"}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{fmtInt(r.qty_in)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{fmtInt(r.qty_out)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-amber-700 dark:text-amber-400">{fmtInt(r.qty_adjust)}</td>
+                    <td className="px-4 py-3 text-right font-semibold tabular-nums">{fmtInt(r.balance)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}

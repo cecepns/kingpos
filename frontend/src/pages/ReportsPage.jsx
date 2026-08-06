@@ -10,6 +10,7 @@ import { formatIDR, formatReportDateCell, toLocalDateStringYMD } from "../utils/
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { PAGE_TABLE, PageStackLoose, REPORT_TABLE_SCROLL, REPORT_TABLE_SCROLL_TALL } from "../components/TableCard";
 import { PaginationBar } from "../components/PaginationBar";
+import { EmptyTableRow } from "../components/EmptyState";
 import { FileText, FileSpreadsheet, Printer } from "lucide-react";
 import AppDatePicker from "../components/AppDatePicker";
 
@@ -276,13 +277,21 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sales.map((r) => (
-                  <tr key={r.d} className="border-b border-slate-50 dark:border-slate-800">
-                    <td className="py-2 whitespace-nowrap">{formatReportDateCell(r.d)}</td>
-                    <td className="py-2 text-right">{formatIDR(r.omzet)}</td>
-                    <td className="py-2 text-right">{formatIDR(r.profit)}</td>
-                  </tr>
-                ))}
+                {sales.length === 0 ? (
+                  <EmptyTableRow
+                    colSpan={3}
+                    title="Belum ada data penjualan"
+                    description="Data penjualan harian akan muncul di sini"
+                  />
+                ) : (
+                  sales.map((r) => (
+                    <tr key={r.d} className="border-b border-slate-50 dark:border-slate-800">
+                      <td className="py-2 whitespace-nowrap">{formatReportDateCell(r.d)}</td>
+                      <td className="py-2 text-right">{formatIDR(r.omzet)}</td>
+                      <td className="py-2 text-right">{formatIDR(r.profit)}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -313,13 +322,21 @@ export default function ReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {best.map((r) => (
-                <tr key={r.id} className="border-b border-slate-50 dark:border-slate-800">
-                  <td className="py-2">{r.name}</td>
-                  <td className="py-2 text-right">{r.qty}</td>
-                  <td className="py-2 text-right">{formatIDR(r.revenue)}</td>
-                </tr>
-              ))}
+              {best.length === 0 ? (
+                <EmptyTableRow
+                  colSpan={3}
+                  title="Belum ada data produk terlaris"
+                  description="Produk terlaris dalam periode ini akan muncul di sini"
+                />
+              ) : (
+                best.map((r) => (
+                  <tr key={r.id} className="border-b border-slate-50 dark:border-slate-800">
+                    <td className="py-2">{r.name}</td>
+                    <td className="py-2 text-right">{r.qty}</td>
+                    <td className="py-2 text-right">{formatIDR(r.revenue)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
           </div>
@@ -351,14 +368,22 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {margin.map((r) => (
-                  <tr key={r.id} className="border-b border-slate-50 dark:border-slate-800">
-                    <td className="py-2">{r.name}</td>
-                    <td className="py-2 text-right">{r.qty}</td>
-                    <td className="py-2 text-right">{formatIDR(r.revenue)}</td>
-                    <td className="py-2 text-right text-emerald-600">{formatIDR(r.margin)}</td>
-                  </tr>
-                ))}
+                {margin.length === 0 ? (
+                  <EmptyTableRow
+                    colSpan={4}
+                    title="Belum ada data margin produk"
+                    description="Analisis margin produk 90 hari akan muncul di sini"
+                  />
+                ) : (
+                  margin.map((r) => (
+                    <tr key={r.id} className="border-b border-slate-50 dark:border-slate-800">
+                      <td className="py-2">{r.name}</td>
+                      <td className="py-2 text-right">{r.qty}</td>
+                      <td className="py-2 text-right">{formatIDR(r.revenue)}</td>
+                      <td className="py-2 text-right text-emerald-600">{formatIDR(r.margin)}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

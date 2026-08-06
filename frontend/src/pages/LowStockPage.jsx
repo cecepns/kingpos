@@ -6,6 +6,7 @@ import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { TableSkeleton } from "../components/Skeleton";
 import { PAGE_TABLE, PAGE_TABLE_WRAP, PageStack } from "../components/TableCard";
 import { PaginationBar } from "../components/PaginationBar";
+import { EmptyTableRow } from "../components/EmptyState";
 
 export default function LowStockPage() {
   const [list, setList] = useState([]);
@@ -69,31 +70,35 @@ export default function LowStockPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {list.map((p, i) => (
-                <tr key={p.id}>
-                  <td className="px-4 py-3 text-slate-500">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                  <td className="px-4 py-3 font-mono text-sm">{p.sku}</td>
-                  <td className="px-4 py-3 font-medium">{p.name}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{p.min_stock}</td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-amber-700 dark:text-amber-400">{p.stock}</td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      to="/app/products"
-                      className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white"
-                    >
-                      Kelola
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {list.length === 0 ? (
+                <EmptyTableRow
+                  colSpan={6}
+                  title="Stok Aman"
+                  description="Semua barang saat ini memiliki stok di atas batas minimum"
+                />
+              ) : (
+                list.map((p, i) => (
+                  <tr key={p.id}>
+                    <td className="px-4 py-3 text-slate-500">{(page - 1) * PAGE_SIZE + i + 1}</td>
+                    <td className="px-4 py-3 font-mono text-sm">{p.sku}</td>
+                    <td className="px-4 py-3 font-medium">{p.name}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{p.min_stock}</td>
+                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-amber-700 dark:text-amber-400">{p.stock}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Link
+                        to="/app/products"
+                        className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white"
+                      >
+                        Kelola
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}
       </div>
-
-      {!loading && list.length === 0 && (
-        <p className="text-sm text-slate-500">Tidak ada barang di bawah batas stok.</p>
-      )}
 
       <div className="flex flex-col gap-2 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
         <span>
