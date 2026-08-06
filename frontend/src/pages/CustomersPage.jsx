@@ -74,7 +74,7 @@ export default function CustomersPage() {
       </div>
 
       <input
-        className="max-w-md rounded-2xl border px-4 py-3 dark:border-slate-700 dark:bg-slate-900"
+        className="w-full md:max-w-md rounded-2xl border px-4 py-3 dark:border-slate-700 dark:bg-slate-900"
         placeholder="Cari nama / WA..."
         value={q}
         onChange={(e) => {
