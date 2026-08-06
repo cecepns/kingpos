@@ -21,6 +21,7 @@ import {
   Check,
   Ticket,
   Share2,
+  Bluetooth,
 } from "lucide-react";
 import Select from "react-select";
 import JsBarcode from "jsbarcode";
@@ -32,7 +33,14 @@ import { formatIDR, formatThousandsIdInput } from "../utils/format";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { Modal } from "../components/Modal";
 import { PageStack } from "../components/TableCard";
-import { buildThermalReceiptHtml, buildReceiptWhatsAppText, normalizeWhatsAppPhone } from "../utils/receipt";
+import {
+  buildThermalReceiptHtml,
+  buildReceiptWhatsAppText,
+  normalizeWhatsAppPhone,
+  buildReceiptPlainText,
+  printViaWebBluetooth,
+  printViaRawBT,
+} from "../utils/receipt";
 import { parseOptionalFloat, parseOptionalInt } from "../utils/numericInput";
 import { uploadSrc } from "../utils/uploadUrl";
 import { useThemeStore } from "../store/themeStore";
@@ -653,6 +661,61 @@ export default function PosPage() {
     } catch {
       toast.dismiss(t);
     }
+  }
+
+  async function printCompletedBluetoothReceipt(tx) {
+    if (!tx) return;
+    const txt = buildReceiptPlainText({
+      storeName: receiptCfg.store_name,
+      storeAddress: receiptCfg.store_address,
+      storePhone: receiptCfg.store_phone,
+      footer: receiptCfg.receipt_footer,
+      invoiceNo: tx.invoice_no,
+      dateStr: tx.sale_date || new Date().toLocaleDateString("id-ID"),
+      lines: tx.lines || [],
+      subtotal: tx.subtotal || 0,
+      discountTotal: tx.discountTotal || 0,
+      taxPercent: tx.taxPercent || 0,
+      taxAmount: tx.taxAmount || 0,
+      additionalFee: tx.additionalFee || 0,
+      additionalFeeName: tx.additionalFeeName || "Biaya Tambahan",
+      grandTotal: tx.grand_total || 0,
+      changeAmount: tx.change_amount || 0,
+      payments: tx.payments || [],
+      widthChars: Number(receiptCfg.thermal_width_mm) <= 58 ? 32 : 48,
+    });
+    const t = toast.loading("Mencari & Menghubungkan Printer Bluetooth...");
+    try {
+      await printViaWebBluetooth(txt);
+      toast.success("Struk dikirim ke Printer Bluetooth!", { id: t });
+    } catch (err) {
+      toast.dismiss(t);
+      toast.error(err.message || "Gagal konek ke printer Bluetooth");
+    }
+  }
+
+  function printCompletedRawBtReceipt(tx) {
+    if (!tx) return;
+    const txt = buildReceiptPlainText({
+      storeName: receiptCfg.store_name,
+      storeAddress: receiptCfg.store_address,
+      storePhone: receiptCfg.store_phone,
+      footer: receiptCfg.receipt_footer,
+      invoiceNo: tx.invoice_no,
+      dateStr: tx.sale_date || new Date().toLocaleDateString("id-ID"),
+      lines: tx.lines || [],
+      subtotal: tx.subtotal || 0,
+      discountTotal: tx.discountTotal || 0,
+      taxPercent: tx.taxPercent || 0,
+      taxAmount: tx.taxAmount || 0,
+      additionalFee: tx.additionalFee || 0,
+      additionalFeeName: tx.additionalFeeName || "Biaya Tambahan",
+      grandTotal: tx.grand_total || 0,
+      changeAmount: tx.change_amount || 0,
+      payments: tx.payments || [],
+      widthChars: Number(receiptCfg.thermal_width_mm) <= 58 ? 32 : 48,
+    });
+    printViaRawBT(txt);
   }
 
   function printCompletedReceipt(tx) {
@@ -1965,51 +2028,63 @@ export default function PosPage() {
               </div>
             </div>
 
-            {/* Opsi Action: Selesai, Struk, Antrian, Bagikan */}
-            <div className="grid grid-cols-4 gap-2 pt-2">
+            {/* Opsi Action Utama */}
+            <div className="space-y-2 pt-2">
               <button
                 type="button"
-                onClick={() => setSuccessModalOpen(false)}
-                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
+                onClick={() => printCompletedBluetoothReceipt(completedTx)}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-brand-600 hover:bg-brand-700 active:scale-98 text-white font-bold text-sm py-3 shadow-md shadow-brand-600/20 transition"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-soft group-hover:scale-105 transition">
-                  <Check className="h-5 w-5 stroke-[3]" />
-                </div>
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Selesai</span>
+                <Bluetooth className="h-4 w-4" /> Cetak via Bluetooth (Thermal ESC/POS)
               </button>
 
-              <button
-                type="button"
-                onClick={() => printCompletedReceipt(completedTx)}
-                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition group"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-emerald-500 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 shadow-soft group-hover:scale-105 transition">
-                  <Printer className="h-5 w-5 stroke-[2.5]" />
-                </div>
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Struk</span>
-              </button>
+              <div className="grid grid-cols-4 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => printCompletedReceipt(completedTx)}
+                  className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition group"
+                  title="Cetak lewat Dialog Print Browser / PDF"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 shadow-xs group-hover:scale-105 transition">
+                    <Printer className="h-5 w-5 stroke-[2]" />
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Print HP/PC</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => printCompletedQueueTicket(completedTx)}
-                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 shadow-xs group-hover:scale-105 transition">
-                  <Ticket className="h-5 w-5" />
-                </div>
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Antrian</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => printCompletedRawBtReceipt(completedTx)}
+                  className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
+                  title="Cetak lewat Aplikasi RawBT Android"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-brand-600 dark:border-slate-700 dark:bg-slate-800 dark:text-brand-400 shadow-xs group-hover:scale-105 transition">
+                    <Printer className="h-5 w-5 stroke-[2.5]" />
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">RawBT App</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => shareCompletedWa(completedTx)}
-                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 shadow-xs group-hover:scale-105 transition">
-                  <Share2 className="h-5 w-5" />
-                </div>
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Bagikan</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => printCompletedQueueTicket(completedTx)}
+                  className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 shadow-xs group-hover:scale-105 transition">
+                    <Ticket className="h-5 w-5" />
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Antrian</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => shareCompletedWa(completedTx)}
+                  className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 shadow-xs group-hover:scale-105 transition">
+                    <Share2 className="h-5 w-5" />
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Bagikan</span>
+                </button>
+              </div>
             </div>
 
             {/* Tombol Buat Transaksi Baru */}

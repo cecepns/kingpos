@@ -132,3 +132,166 @@ export function buildReceiptWhatsAppText({
   foot += "\n\nTerima kasih.";
   return hdr + items + foot;
 }
+
+/** Formatter Plain Text untuk ESC/POS atau RawBT */
+export function buildReceiptPlainText({
+  storeName = "Toko",
+  storeAddress = "",
+  storePhone = "",
+  footer = "",
+  invoiceNo = "—",
+  dateStr = "",
+  lines = [],
+  subtotal = 0,
+  discountTotal = 0,
+  taxPercent = 0,
+  taxAmount = 0,
+  additionalFee = 0,
+  additionalFeeName = "Biaya Tambahan",
+  grandTotal = 0,
+  changeAmount = 0,
+  payments = [],
+  widthChars = 32,
+}) {
+  const lineStr = "-".repeat(widthChars);
+  const doubleLine = "=".repeat(widthChars);
+
+  const padRightLeft = (left, right) => {
+    const spaceNeeded = widthChars - left.length - right.length;
+    if (spaceNeeded <= 0) return left.slice(0, Math.max(1, widthChars - right.length - 1)) + " " + right;
+    return left + " ".repeat(spaceNeeded) + right;
+  };
+
+  const centerText = (str) => {
+    if (str.length >= widthChars) return str;
+    const pad = Math.floor((widthChars - str.length) / 2);
+    return " ".repeat(pad) + str;
+  };
+
+  let txt = "";
+  txt += centerText(storeName) + "\n";
+  if (storeAddress) txt += centerText(storeAddress) + "\n";
+  if (storePhone) txt += centerText(storePhone) + "\n";
+  txt += lineStr + "\n";
+  txt += padRightLeft(invoiceNo, dateStr) + "\n";
+  txt += lineStr + "\n";
+
+  for (const c of lines) {
+    const rawDisc = Number(c.discount_amount || 0);
+    const sub = Number(c.sell_price) * Number(c.qty);
+    const net = sub - rawDisc;
+    txt += c.name + "\n";
+    const qtyPrice = `${c.qty}x ${formatIDR(c.sell_price)}`;
+    txt += padRightLeft(`  ${qtyPrice}`, formatIDR(net)) + "\n";
+    if (rawDisc > 0) {
+      txt += `  (disc: -${formatIDR(rawDisc)})\n`;
+    }
+  }
+
+  txt += lineStr + "\n";
+  txt += padRightLeft("Subtotal", formatIDR(subtotal)) + "\n";
+  if (discountTotal > 0) txt += padRightLeft("Diskon total", `-${formatIDR(discountTotal)}`) + "\n";
+  if (taxPercent > 0) txt += padRightLeft(`Pajak ${taxPercent}%`, formatIDR(taxAmount)) + "\n";
+  if (additionalFee > 0) txt += padRightLeft(additionalFeeName || "Biaya Tambahan", `+${formatIDR(additionalFee)}`) + "\n";
+  txt += doubleLine + "\n";
+  txt += padRightLeft("TOTAL", formatIDR(grandTotal)) + "\n";
+  txt += doubleLine + "\n";
+
+  if (payments?.length) {
+    for (const p of payments) {
+      txt += padRightLeft(`Bayar (${p.method})`, formatIDR(p.amount)) + "\n";
+    }
+  }
+  if (changeAmount > 0) {
+    txt += padRightLeft("Kembalian", formatIDR(changeAmount)) + "\n";
+  }
+
+  if (footer) {
+    txt += lineStr + "\n";
+    txt += centerText(footer) + "\n";
+  }
+  txt += "\n\n\n";
+  return txt;
+}
+
+/** Mengubah Plain Text Struk menjadi Byte Array ESC/POS */
+export function textToEscPosBytes(text) {
+  const encoder = new TextEncoder();
+  const init = new Uint8Array([0x1b, 0x40]);
+  const cut = new Uint8Array([0x1d, 0x56, 0x00]);
+  const body = encoder.encode(text);
+
+  const totalLength = init.length + body.length + cut.length;
+  const result = new Uint8Array(totalLength);
+  result.set(init, 0);
+  result.set(body, init.length);
+  result.set(cut, init.length + body.length);
+  return result;
+}
+
+let savedBluetoothDevice = null;
+
+/** Print via Web Bluetooth API (Auto Reconnect & Instant 1-Click Print) */
+export async function printViaWebBluetooth(receiptText) {
+  if (!navigator.bluetooth) {
+    throw new Error("Web Bluetooth tidak didukung di browser ini. Gunakan Google Chrome pada Android.");
+  }
+
+  let device = savedBluetoothDevice;
+
+  // Jika belum ada device tersimpan atau terputus, hubungkan ke device
+  if (!device || !device.gatt) {
+    device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [
+        "000018f0-0000-1000-8000-00805f9b34fb",
+        "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
+        "00001101-0000-1000-8000-00805f9b34fb",
+        "49535343-fe7d-4ae5-8fa9-9fafd205e455",
+      ],
+    });
+    savedBluetoothDevice = device;
+  }
+
+  let server = device.gatt.connected ? device.gatt : null;
+  if (!server) {
+    server = await device.gatt.connect();
+  }
+
+  const services = await server.getPrimaryServices();
+  let targetChar = null;
+
+  for (const service of services) {
+    const chars = await service.getCharacteristics();
+    for (const c of chars) {
+      if (c.properties.write || c.properties.writeWithoutResponse) {
+        targetChar = c;
+        break;
+      }
+    }
+    if (targetChar) break;
+  }
+
+  if (!targetChar) {
+    savedBluetoothDevice = null;
+    throw new Error("Karakteristik penulisan Bluetooth printer tidak ditemukan.");
+  }
+
+  const bytes = textToEscPosBytes(receiptText);
+  const chunkSize = 512;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.slice(i, i + chunkSize);
+    if (targetChar.properties.write) {
+      await targetChar.writeValueWithResponse(chunk);
+    } else {
+      await targetChar.writeValueWithoutResponse(chunk);
+    }
+  }
+}
+
+/** Print via RawBT App Intent (Android) */
+export function printViaRawBT(receiptText) {
+  const intentUrl = "intent:#Intent;scheme=rawbt;package=ru.a2ol.rawbtprint;S.txt=" + encodeURIComponent(receiptText) + ";end;";
+  window.location.href = intentUrl;
+}
+
