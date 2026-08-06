@@ -79,9 +79,9 @@ export default function SuppliersPage() {
             });
             setOpen(true);
           }}
-          className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 font-semibold text-white max-w-fit"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 font-semibold text-white shadow-soft sm:w-auto"
         >
-          <Plus className="h-5 w-5" /> Tambah
+          <Plus className="h-5 w-5" /> Tambah supplier baru
         </button>
       </div>
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Landmark } from "lucide-react";
+import { Landmark, ShoppingBag } from "lucide-react";
 import api from "../api/client";
 import { fetchAllPages } from "../api/fetchAllPages";
 import { PAGE_SIZE } from "../constants/pagination";
@@ -223,23 +223,25 @@ export default function SupplierPayablesPage() {
         <button
           type="button"
           onClick={() => setTab("hutang")}
-          className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
             tab === "hutang"
               ? "bg-brand-600 text-white shadow-md shadow-brand-600/20 dark:bg-brand-500"
               : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
           }`}
         >
+          <Landmark className="h-4 w-4" />
           Hutang ke Supplier
         </button>
         <button
           type="button"
           onClick={() => setTab("beli")}
-          className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
             tab === "beli"
               ? "bg-brand-600 text-white shadow-md shadow-brand-600/20 dark:bg-brand-500"
               : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
           }`}
         >
+          <ShoppingBag className="h-4 w-4" />
           Catat Pembelian (Total Beli)
         </button>
       </div>
@@ -256,7 +258,7 @@ export default function SupplierPayablesPage() {
                 setQ(e.target.value);
               }}
             />
-            <button type="button" onClick={openCreatePayable} className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 font-semibold text-white shadow-soft">
+            <button type="button" onClick={openCreatePayable} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 font-semibold text-white shadow-soft sm:w-auto">
               <Landmark className="h-5 w-5" />
               Catat hutang baru
             </button>

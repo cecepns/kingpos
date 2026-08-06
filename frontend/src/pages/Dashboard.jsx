@@ -60,7 +60,24 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [draftFrom, setDraftFrom] = useState("");
   const [draftTo, setDraftTo] = useState("");
-  const [applied, setApplied] = useState(null);
+  const [applied, setApplied] = useState(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const fmt = (dt) =>
+      `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    const f = fmt(yesterday);
+    const t = fmt(today);
+    return { from: f, to: t };
+  });
+
+  useEffect(() => {
+    if (applied?.from && applied?.to) {
+      setDraftFrom(applied.from);
+      setDraftTo(applied.to);
+    }
+  }, []);
+
   const hasLoadedRef = useRef(false);
 
   useEffect(() => {
@@ -107,6 +124,19 @@ export default function Dashboard() {
     setDraftFrom("");
     setDraftTo("");
     setApplied(null);
+  }
+
+  function presetYesterdayToday() {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const fmt = (dt) =>
+      `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    const f = fmt(yesterday);
+    const t = fmt(today);
+    setDraftFrom(f);
+    setDraftTo(t);
+    setApplied({ from: f, to: t });
   }
 
   function presetThisMonth() {
@@ -184,46 +214,66 @@ export default function Dashboard() {
         </div>
       ) : null}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
           <p className="text-sm text-slate-500">
             Ringkasan operasional dan performa penjualan toko
           </p>
         </div>
-        <div className="flex flex-col gap-2 rounded-2xl border border-slate-100 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:flex-wrap sm:items-end">
-          <div className="w-full sm:w-44">
-            <label className="text-xs font-medium text-slate-500">Dari</label>
-            <div className="mt-1">
-              <AppDatePicker value={draftFrom} onChange={(val) => setDraftFrom(val)} placeholder="Pilih tanggal" />
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="w-full sm:w-44">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Dari</label>
+              <div className="mt-1">
+                <AppDatePicker value={draftFrom} onChange={(val) => setDraftFrom(val)} placeholder="Pilih tanggal" />
+              </div>
+            </div>
+            <div className="w-full sm:w-44">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Sampai</label>
+              <div className="mt-1">
+                <AppDatePicker value={draftTo} onChange={(val) => setDraftTo(val)} placeholder="Pilih tanggal" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2 pt-1 sm:pt-5">
+              <button
+                type="button"
+                onClick={applyFilter}
+                className="inline-flex items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors"
+              >
+                Terapkan
+              </button>
+              <button
+                type="button"
+                onClick={resetFilter}
+                className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+              >
+                Reset
+              </button>
             </div>
           </div>
-          <div className="w-full sm:w-44">
-            <label className="text-xs font-medium text-slate-500">Sampai</label>
-            <div className="mt-1">
-              <AppDatePicker value={draftTo} onChange={(val) => setDraftTo(val)} placeholder="Pilih tanggal" />
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={applyFilter}
-            className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm"
-          >
-            Terapkan
-          </button>
-          <button
-            type="button"
-            onClick={resetFilter}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200"
-          >
-            Reset
-          </button>
-          <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2 sm:border-0 sm:pt-0 dark:border-slate-800">
-            <button type="button" onClick={presetThisMonth} className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-              Bulan ini
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-800 lg:border-t-0 lg:pt-0">
+            <button
+              type="button"
+              onClick={presetYesterdayToday}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700/80 transition-colors"
+            >
+              Kemarin - Hari ini
             </button>
-            <button type="button" onClick={presetLast7Days} className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-              7 hari terakhir
+            <button
+              type="button"
+              onClick={presetLast7Days}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700/80 transition-colors"
+            >
+              7 Hari terakhir
+            </button>
+            <button
+              type="button"
+              onClick={presetThisMonth}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700/80 transition-colors"
+            >
+              Bulan ini
             </button>
           </div>
         </div>
@@ -231,25 +281,25 @@ export default function Dashboard() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title={filtered ? "Omzet (periode)" : "Omzet hari ini"}
+          title="Omzet"
           value={formatIDR(data.today.omzet)}
           icon={TrendingUp}
           accent="bg-emerald-500"
         />
         <StatCard
-          title={filtered ? "Profit (periode)" : "Profit hari ini"}
+          title="Profit"
           value={formatIDR(data.today.profit)}
           icon={Wallet}
           accent="bg-teal-600"
         />
         <StatCard
-          title={filtered ? "Transaksi (periode)" : "Transaksi"}
+          title="Transaksi"
           value={String(data.today.transactions)}
           icon={ShoppingBag}
           accent="bg-cyan-600"
         />
         <StatCard
-          title={filtered ? "Produk terjual — periode" : "Produk terjual (qty)"}
+          title="Produk Terjual"
           value={String(Math.round(data.today.itemsSold))}
           icon={ShoppingBag}
           accent="bg-brand-700"
@@ -296,11 +346,11 @@ export default function Dashboard() {
       {showFinance && data.cashFlow && (
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-sm text-slate-500">{filtered ? "Kas masuk (periode)" : "Kas masuk (hari ini)"}</p>
+            <p className="text-sm text-slate-500">Kas Masuk</p>
             <p className="mt-1 text-xl font-bold text-emerald-600">{formatIDR(data.cashFlow.in)}</p>
           </div>
           <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-sm text-slate-500">{filtered ? "Kas keluar (periode)" : "Kas keluar (hari ini)"}</p>
+            <p className="text-sm text-slate-500">Kas Keluar</p>
             <p className="mt-1 text-xl font-bold text-red-500">{formatIDR(data.cashFlow.out)}</p>
           </div>
         </div>
@@ -309,7 +359,7 @@ export default function Dashboard() {
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2 rounded-2xl border border-slate-100 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">
           <h3 className="mb-4 font-semibold text-slate-900 dark:text-white">
-            {filtered ? "Tren penjualan (per tanggal dalam rentang)" : "Tren penjualan (14 hari)"}
+            Tren Penjualan
           </h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -332,7 +382,7 @@ export default function Dashboard() {
 
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">
           <h3 className="mb-4 font-semibold text-slate-900 dark:text-white">
-            {filtered ? "Best seller — periode (qty)" : "Best seller — bulan ini (qty)"}
+            Produk Terlaris
           </h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -353,7 +403,7 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">
           <h3 className="mb-4 font-semibold text-slate-900 dark:text-white">
-            {filtered ? "Profit per hari (dalam rentang)" : "Profit harian"}
+            Profit Harian
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">

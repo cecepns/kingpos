@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Banknote, Eye, Trash2, Undo2, Wallet } from "lucide-react";
+import { Banknote, Eye, Printer, Trash2, Undo2, Wallet, X } from "lucide-react";
 import api from "../api/client";
 import { fetchAllPages } from "../api/fetchAllPages";
 import { PAGE_SIZE } from "../constants/pagination";
@@ -639,11 +639,11 @@ export default function TransactionsPage() {
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
               {canPermanentDelete(detail) && (
                 <button
                   type="button"
-                  className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-700 transition-colors"
                   onClick={() =>
                     setDeletePerm({
                       id: detail.id,
@@ -652,23 +652,34 @@ export default function TransactionsPage() {
                     })
                   }
                 >
-                  Hapus permanen
+                  <Trash2 className="h-4 w-4" />
+                  Hapus permanent
                 </button>
               )}
-              <button type="button" className="rounded-xl border px-4 py-2" onClick={() => setDetailId(null)}>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors"
+                onClick={() => setDetailId(null)}
+              >
+                <X className="h-4 w-4" />
                 Tutup
               </button>
               {detail.status === "completed" && hasOutstandingReceivable(detail) && (
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-100"
+                  className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 shadow-sm hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-100 dark:hover:bg-amber-900/50 transition-colors"
                   onClick={() => openPayPiutang(detail.id)}
                 >
                   <Wallet className="h-4 w-4" />
                   Pelunasan piutang
                 </button>
               )}
-              <button type="button" className="rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white" onClick={printReceipt}>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors"
+                onClick={printReceipt}
+              >
+                <Printer className="h-4 w-4" />
                 Cetak struk
               </button>
             </div>
