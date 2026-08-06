@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Banknote, Eye, Printer, Trash2, Undo2, Wallet, X } from "lucide-react";
+import { Banknote, Bluetooth, Edit, Eye, Printer, Trash2, Undo2, Wallet, X } from "lucide-react";
 import api from "../api/client";
 import { fetchAllPages } from "../api/fetchAllPages";
 import { PAGE_SIZE } from "../constants/pagination";
 import { formatDateID, formatDateTimeID, formatIDR, formatThousandsIdInput } from "../utils/format";
-import { buildThermalReceiptHtml } from "../utils/receipt";
+import { buildEscPosReceiptBinary, buildThermalReceiptHtml, printViaWebBluetooth } from "../utils/receipt";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TableSkeleton } from "../components/Skeleton";
@@ -213,6 +213,76 @@ export default function TransactionsPage() {
       toast.success("Struk dibuka di tab baru", { id: t });
     } catch {
       toast.dismiss(t);
+    }
+  }
+
+  async function printBluetoothReceipt(txData) {
+    const target = txData || detail;
+    if (!target) return;
+    const t = toast.loading("Mencetak ke Printer Bluetooth...");
+    try {
+      const { data: s } = await api.get("/api/settings");
+      let fullTx = target;
+      if (!target.items) {
+        const { data: fetched } = await api.get(`/api/transactions/${target.id}`, { skipToast: true });
+        fullTx = fetched;
+      }
+      const lines = (fullTx.items || []).map((it) => ({
+        name: it.product_name,
+        sell_price: Number(it.sell_price),
+        qty: Number(it.qty),
+        discount_amount: Number(it.discount_amount || 0),
+      }));
+      const payments = (fullTx.payments || []).map((p) => ({
+        method: PAY_LABEL[p.method] || p.method,
+        amount: Number(p.amount),
+      }));
+      const binary = buildEscPosReceiptBinary({
+        storeName: s.store_name || "Toko",
+        storeAddress: s.store_address || "",
+        storePhone: s.store_phone || "",
+        footer: s.receipt_footer || "",
+        invoiceNo: fullTx.invoice_no,
+        dateStr: receiptDateStr(fullTx),
+        lines,
+        subtotal: Number(fullTx.subtotal),
+        discountTotal: Number(fullTx.discount_total),
+        taxPercent: Number(fullTx.tax_percent),
+        taxAmount: Number(fullTx.tax_amount),
+        additionalFee: Number(fullTx.additional_fee || 0),
+        additionalFeeName: fullTx.additional_fee_name || "Biaya Tambahan",
+        grandTotal: Number(fullTx.grand_total),
+        changeAmount: Number(fullTx.change_amount),
+        payments,
+        widthMm: Number(s.thermal_width_mm) || 58,
+      });
+      await printViaWebBluetooth(binary);
+      toast.success("Struk dikirim ke Printer Bluetooth!", { id: t });
+    } catch (err) {
+      toast.dismiss(t);
+      toast.error(err.message || "Printer Bluetooth tidak merespons");
+    }
+  }
+
+  async function editTransaction(tx) {
+    if (tx.status === "completed") {
+      const confirmed = window.confirm(
+        `Koreksi/Edit Transaksi ${tx.invoice_no}:\n\n` +
+        `Transaksi selesai ini akan dibatalkan/dihapus terlebih dahulu dan keranjang barang akan dimuat ulang ke kasir POS agar Anda dapat mengedit item, harga, atau jumlah.\n\n` +
+        `Apakah Anda yakin ingin melanjutkan?`
+      );
+      if (!confirmed) return;
+      const t = toast.loading("Memproses edit transaksi...");
+      try {
+        await api.delete(`/api/transactions/${tx.id}`, { skipToast: true });
+        toast.dismiss(t);
+        navigate(`/app/pos?resume=${tx.id}`);
+      } catch (err) {
+        toast.dismiss(t);
+        toast.error(err.response?.data?.error || "Gagal memproses edit transaksi");
+      }
+    } else {
+      navigate(`/app/pos?resume=${tx.id}`);
     }
   }
 
@@ -440,6 +510,33 @@ export default function TransactionsPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
+
+                      {/* Tombol Cetak Bluetooth */}
+                      {x.status === "completed" && (
+                        <button
+                          type="button"
+                          className="rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"
+                          title="Cetak Struk via Bluetooth"
+                          aria-label="Cetak Bluetooth"
+                          onClick={() => printBluetoothReceipt(x)}
+                        >
+                          <Bluetooth className="h-4 w-4" />
+                        </button>
+                      )}
+
+                      {/* Tombol Edit Transaksi */}
+                      {x.status !== "refunded" && (
+                        <button
+                          type="button"
+                          className="rounded-lg p-2 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                          title="Edit / Koreksi Transaksi"
+                          aria-label="Edit Transaksi"
+                          onClick={() => editTransaction(x)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      )}
+
                       {x.status === "completed" && hasOutstandingReceivable(x) && (
                         <button
                           type="button"
@@ -661,6 +758,20 @@ export default function TransactionsPage() {
                 <X className="h-4 w-4" />
                 Tutup
               </button>
+              {detail.status !== "refunded" && (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 shadow-sm hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-100 dark:hover:bg-amber-900/50 transition-colors"
+                  onClick={() => {
+                    const tx = detail;
+                    setDetailId(null);
+                    editTransaction(tx);
+                  }}
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit / Koreksi
+                </button>
+              )}
               {detail.status === "completed" && hasOutstandingReceivable(detail) && (
                 <button
                   type="button"
@@ -671,6 +782,14 @@ export default function TransactionsPage() {
                   Pelunasan piutang
                 </button>
               )}
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
+                onClick={() => printBluetoothReceipt(detail)}
+              >
+                <Bluetooth className="h-4 w-4" />
+                Cetak Bluetooth
+              </button>
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors"
