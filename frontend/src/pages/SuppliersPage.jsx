@@ -61,12 +61,7 @@ export default function SuppliersPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Supplier</h1>
-          <p className="text-sm text-slate-500">
-            Hutang supplier di kolom balance —{" "}
-            <Link to="/app/supplier-payables" className="font-medium text-brand-600 underline">
-              kelola hutang & total beli
-            </Link>
-          </p>
+          <p className="text-sm text-slate-500">Kelola data pemasok barang</p>
         </div>
         <button
           type="button"

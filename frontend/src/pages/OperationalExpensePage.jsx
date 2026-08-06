@@ -230,6 +230,7 @@ export default function OperationalExpensePage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pengeluaran operasional</h1>
+          <p className="text-sm text-slate-500">Catat dan kelola pengeluaran operasional toko</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link

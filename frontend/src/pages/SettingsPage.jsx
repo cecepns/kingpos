@@ -34,7 +34,7 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-lg space-y-4">
       <div>
         <h1 className="text-2xl font-bold">Pengaturan</h1>
-        <p className="text-sm text-slate-500">Toko, struk termal, dan catatan default</p>
+        <p className="text-sm text-slate-500">Atur profil toko, struk cetak, dan konfigurasi umum</p>
       </div>
       <form className="space-y-4 rounded-2xl border bg-white p-6 shadow-soft dark:border-slate-800 dark:bg-slate-900" onSubmit={form.handleSubmit(onSubmit)}>
         <div>

@@ -41,7 +41,7 @@ export default function StockSummaryPage() {
     <PageStack>
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Data stok barang</h1>
-        <p className="text-sm text-slate-500">Ringkasan stok masuk, keluar & sisa (dari mutasi + stok saat ini)</p>
+        <p className="text-sm text-slate-500">Ringkasan stok masuk, keluar, dan sisa barang</p>
       </div>
 
       <input

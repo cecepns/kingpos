@@ -76,10 +76,8 @@ export default function CategoriesPage() {
     <PageStack>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Data kategori</h1>
-          <p className="text-sm text-slate-500">
-            {total} kategori · kode bisa diisi manual atau otomatis dari ID
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Kategori barang</h1>
+          <p className="text-sm text-slate-500">Kelola kategori barang</p>
         </div>
         <button
           type="button"

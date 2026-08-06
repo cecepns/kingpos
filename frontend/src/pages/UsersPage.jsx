@@ -127,7 +127,7 @@ export default function UsersPage() {
     <PageStack>
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pengguna & hak akses</h1>
-        <p className="text-sm text-slate-500">Kelola akun login dan izin menu per peran (role)</p>
+        <p className="text-sm text-slate-500">Kelola akun pengguna dan hak akses role</p>
       </div>
 
       <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">

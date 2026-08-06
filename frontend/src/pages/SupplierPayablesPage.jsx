@@ -214,12 +214,7 @@ export default function SupplierPayablesPage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Hutang & pembelian supplier</h1>
-          <p className="text-sm text-slate-500">
-            Catat utang ke supplier dan pembayarannya. Total beli bisa diisi lewat ringkasan pembelian (bukan pengeluaran operasional).{" "}
-            <Link to="/app/suppliers" className="text-brand-600 underline">
-              Data supplier
-            </Link>
-          </p>
+          <p className="text-sm text-slate-500">Kelola hutang usaha dan riwayat pembelian supplier</p>
         </div>
       </div>
 

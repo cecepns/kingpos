@@ -134,6 +134,7 @@ export default function ReportsPage() {
     <PageStackLoose>
       <div>
         <h1 className="text-2xl font-bold">Laporan & analisis</h1>
+        <p className="text-sm text-slate-500">Ringkasan dan laporan keuangan penjualan</p>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">

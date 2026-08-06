@@ -58,7 +58,7 @@ export default function CustomersPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Pelanggan</h1>
-          <p className="text-sm text-slate-500">Total belanja & piutang di backend</p>
+          <p className="text-sm text-slate-500">Kelola data pelanggan toko</p>
         </div>
         <button
           type="button"

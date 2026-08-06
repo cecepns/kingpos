@@ -840,6 +840,7 @@ export default function PosPage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Point of Sale</h1>
+          <p className="text-sm text-slate-500">Kasir dan transaksi kasir langsung</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button

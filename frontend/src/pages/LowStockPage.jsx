@@ -38,7 +38,7 @@ export default function LowStockPage() {
     <PageStack>
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Barang stok menipis</h1>
-        <p className="text-sm text-slate-500">Produk dengan stok ≤ batas minimum</p>
+        <p className="text-sm text-slate-500">Daftar produk dengan stok di bawah batas minimum</p>
       </div>
 
       <input

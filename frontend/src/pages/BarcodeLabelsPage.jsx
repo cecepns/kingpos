@@ -162,6 +162,7 @@ export default function BarcodeLabelsPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Cetak label barcode</h1>
+        <p className="text-sm text-slate-500">Cetak label barcode untuk produk</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

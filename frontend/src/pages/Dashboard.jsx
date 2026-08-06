@@ -187,16 +187,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
           <p className="text-sm text-slate-500">
-            Ringkasan operasional & performa penjualan
-            {filtered ? (
-              <>
-                {" "}
-                · Filter:{" "}
-                <span className="font-medium text-slate-700 dark:text-slate-300">
-                  {formatDateID(data.filter.from)} — {formatDateID(data.filter.to)}
-                </span>
-              </>
-            ) : null}
+            Ringkasan operasional dan performa penjualan toko
           </p>
         </div>
         <div className="flex flex-col gap-2 rounded-2xl border border-slate-100 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:flex-wrap sm:items-end">

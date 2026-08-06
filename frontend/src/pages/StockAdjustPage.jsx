@@ -69,7 +69,7 @@ export default function StockAdjustPage() {
     <PageStack>
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Penyesuaian stok</h1>
-        <p className="text-sm text-slate-500">Masukkan stok fisik aktual; sistem menghitung selisih dan mencatat mutasi</p>
+        <p className="text-sm text-slate-500">Penyesuaian dan opname stok barang</p>
       </div>
 
       <div className="max-w-xl space-y-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">

@@ -383,7 +383,7 @@ export default function ProductsPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Produk</h1>
-          <p className="text-sm text-slate-500">SKU, kategori, harga, terjual, stok tipis — halaman barcode terpisah</p>
+          <p className="text-sm text-slate-500">Kelola data dan stok barang toko</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
