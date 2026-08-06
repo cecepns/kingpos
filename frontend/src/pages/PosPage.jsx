@@ -1072,6 +1072,8 @@ export default function PosPage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Point of Sale</h1>
           <p className="text-sm text-slate-500">Kasir dan transaksi kasir langsung</p>
         </div>
+        {/* Tombol Draft, Hold, Struk disembunyikan sesuai permintaan */}
+        {/* 
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -1096,6 +1098,7 @@ export default function PosPage() {
             <Printer className="h-4 w-4" /> Struk
           </button>
         </div>
+        */}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
@@ -1205,6 +1208,8 @@ export default function PosPage() {
 
         <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <h2 className="mb-3 font-semibold text-slate-900 dark:text-white">Keranjang</h2>
+          {/* Tanggal penjualan & Pelanggan disembunyikan sesuai permintaan */}
+          {/* 
           <div className="mb-3 space-y-1.5">
             <label className="text-xs font-medium text-slate-500">Tanggal penjualan</label>
             <AppDatePicker value={saleDate} onChange={(val) => setSaleDate(val)} />
@@ -1283,6 +1288,7 @@ export default function PosPage() {
               }}
             />
           </div>
+          */}
           <div className="max-h-[min(480px,58vh)] space-y-3 overflow-auto">
             {cart.length === 0 && <p className="text-sm text-slate-500">Belum ada item</p>}
             {cart.map((c) => {
@@ -1502,6 +1508,8 @@ export default function PosPage() {
               <span>Subtotal</span>
               <span>{formatIDR(subtotal)}</span>
             </div>
+            {/* Diskon total & Pajak % disembunyikan sesuai permintaan */}
+            {/* 
             <label className="flex justify-between gap-2 text-sm">
               Diskon total
               <input
@@ -1536,9 +1544,9 @@ export default function PosPage() {
                 }}
               />
             </label>
+            */}
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-1.5">
-                {additionalFeeName || "Biaya Tambahan"}
                 <button
                   type="button"
                   onClick={() => {
@@ -1548,7 +1556,7 @@ export default function PosPage() {
                   }}
                   className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
                 >
-                  {additionalFee > 0 ? "(Ubah)" : "+ Tambah Biaya"}
+                  {additionalFee > 0 ? `${additionalFeeName || "Biaya Tambahan"} (Ubah)` : "+ Tambah Biaya"}
                 </button>
               </span>
               <span className="font-semibold">
@@ -1572,10 +1580,13 @@ export default function PosPage() {
                 )}
               </span>
             </div>
+            {/* Pajak disembunyikan sesuai permintaan */}
+            {/* 
             <div className="flex justify-between text-sm">
               <span>Pajak</span>
               <span>{formatIDR(taxAmount)}</span>
             </div>
+            */}
             <div className="flex justify-between text-lg font-bold text-brand-700 dark:text-brand-300">
               <span>Grand Total</span>
               <span>{formatIDR(grandTotal)}</span>
@@ -1591,7 +1602,8 @@ export default function PosPage() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
-            {receiptWaShareBlock({ invoiceLabel: "Keranjang" })}
+            {/* Kirim struk WA di keranjang disembunyikan sesuai permintaan */}
+            {/* {receiptWaShareBlock({ invoiceLabel: "Keranjang" })} */}
             <button
               type="button"
               onClick={() => setPayOpen(true)}
@@ -1696,6 +1708,8 @@ export default function PosPage() {
               />
             </div>
           )}
+          {/* Piutang disembunyikan sesuai permintaan */}
+          {/* 
           <div className="space-y-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800 md:col-span-2">
             <p className="text-sm font-medium">Piutang (sisa ke grand total)</p>
             <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -1714,6 +1728,7 @@ export default function PosPage() {
               <p className="text-sm text-slate-500">Tidak ada sisa piutang (atau grand total sudah tertutup).</p>
             )}
           </div>
+          */}
         </div>
 
         {/* Saran Nominal Cepat Dynamic */}
@@ -1769,11 +1784,14 @@ export default function PosPage() {
             </button>
           </div>
         </div>
+        {/* Kirim struk WA di modal pembayaran disembunyikan sesuai permintaan */}
+        {/* 
         {receiptWaShareBlock({
           compact: true,
           invoiceLabel: "Preview pembayaran",
           hint: "Struk mencakup item keranjang + rincian tunai/transfer/QRIS/piutang sesuai nominal di atas.",
         })}
+        */}
         <div className="mt-4 flex justify-end gap-2">
           <button type="button" className="rounded-xl border px-4 py-2" onClick={() => setPayOpen(false)}>
             Batal
