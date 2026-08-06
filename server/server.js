@@ -847,13 +847,38 @@ app.get(
   })
 );
 
+async function generateUniqueSku(requestedSku, currentId = null, tableName = "products") {
+  let baseSku = String(requestedSku || "").trim();
+  if (!baseSku) {
+    baseSku = `SKU-${Date.now()}`;
+  }
+
+  let skuCandidate = baseSku;
+  let counter = 1;
+
+  while (true) {
+    let query = `SELECT id FROM ${tableName} WHERE sku = ?`;
+    let params = [skuCandidate];
+    if (currentId) {
+      query += ` AND id != ?`;
+      params.push(currentId);
+    }
+    const [rows] = await pool.query(query, params);
+    if (rows.length === 0) {
+      return skuCandidate;
+    }
+    skuCandidate = `${baseSku}-${counter}`;
+    counter++;
+  }
+}
+
 app.post(
   "/api/products",
   requireAuth,
   requireRoles("admin", "owner"),
   asyncHandler(async (req, res) => {
     const b = req.body;
-    const sku = String(b.sku || "").trim() || `SKU-${Date.now()}`;
+    const sku = await generateUniqueSku(b.sku);
     let barcode = b.barcode ? String(b.barcode).trim() : null;
     if (!barcode) barcode = `899${String(Date.now()).slice(-9)}`;
     const [r] = await pool.query(
@@ -911,7 +936,7 @@ app.post(
         );
       }
     }
-    res.status(201).json({ id: pid, barcode });
+    res.status(201).json({ id: pid, barcode, sku });
   })
 );
 
@@ -922,12 +947,13 @@ app.put(
   asyncHandler(async (req, res) => {
     const b = req.body;
     const pid = req.params.id;
+    const sku = await generateUniqueSku(b.sku, pid);
     const stockPart =
       b.stock !== undefined && b.stock !== null && String(b.stock).trim() !== ""
         ? ", stock=?"
         : "";
     const params = [
-      b.sku,
+      sku,
       b.barcode,
       b.name,
       b.description || null,
@@ -3546,6 +3572,37 @@ app.put(
 
 app.use((err, _req, res, _next) => {
   console.error(err);
+
+  if (err.code === "ER_DUP_ENTRY" || err.errno === 1062) {
+    const msg = err.message || err.sqlMessage || "";
+    let friendlyMessage = "Data duplikat sudah terdaftar di sistem.";
+
+    const match = msg.match(/Duplicate entry '([^']+)' for key '([^']+)'/i);
+    if (match) {
+      const val = match[1];
+      const rawKey = match[2];
+      const key = rawKey.split(".").pop().toLowerCase();
+
+      if (key.includes("sku")) {
+        friendlyMessage = `SKU '${val}' sudah digunakan. Silakan gunakan SKU yang lain.`;
+      } else if (key.includes("barcode")) {
+        friendlyMessage = `Barcode '${val}' sudah digunakan. Silakan gunakan Barcode yang lain.`;
+      } else if (key.includes("username")) {
+        friendlyMessage = `Username '${val}' sudah digunakan.`;
+      } else if (key.includes("email")) {
+        friendlyMessage = `Email '${val}' sudah terdaftar.`;
+      } else {
+        friendlyMessage = `Data '${val}' pada '${key}' sudah ada di sistem.`;
+      }
+    } else if (msg.toLowerCase().includes("sku")) {
+      friendlyMessage = "SKU sudah digunakan. Silakan gunakan SKU yang lain.";
+    } else if (msg.toLowerCase().includes("barcode")) {
+      friendlyMessage = "Barcode sudah digunakan. Silakan gunakan Barcode yang lain.";
+    }
+
+    return res.status(400).json({ error: friendlyMessage });
+  }
+
   res.status(500).json({ error: err.message || "Server error" });
 });
 

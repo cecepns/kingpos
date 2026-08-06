@@ -311,15 +311,16 @@ export default function ProductsPage() {
     const t = toast.loading("Menyimpan...");
     try {
       if (values.id) {
-        await api.put(`/api/products/${values.id}`, payload);
+        await api.put(`/api/products/${values.id}`, payload, { skipToast: true });
       } else {
-        await api.post("/api/products", payload);
+        await api.post("/api/products", payload, { skipToast: true });
       }
       toast.success("Disimpan", { id: t });
       setModal(null);
       load();
-    } catch {
-      toast.dismiss(t);
+    } catch (err) {
+      const errMsg = err?.response?.data?.error || err?.message || "Gagal menyimpan produk";
+      toast.error(errMsg, { id: t });
     }
   }
 
@@ -545,8 +546,8 @@ export default function ProductsPage() {
             <input className="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950" {...form.register("name", { required: true })} />
           </div>
           <div>
-            <label className="text-xs text-slate-500">SKU</label>
-            <input className="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950" {...form.register("sku")} />
+            <label className="text-xs text-slate-500">SKU <span className="text-[11px] text-slate-400">(Opsional / Otomatis)</span></label>
+            <input className="mt-1 w-full rounded-xl border px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" placeholder="Kosongkan untuk auto-generate" {...form.register("sku")} />
           </div>
           <div>
             <div className="flex items-center justify-between">
