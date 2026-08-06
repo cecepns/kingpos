@@ -276,8 +276,16 @@ export default function ProductsPage() {
       sell_price: Number(values.sell_price),
       wholesale_price: Number(values.wholesale_price || 0),
       wholesale_min_qty: Number(values.wholesale_min_qty || 0),
-      variants: values.variants || [],
-      tiers: values.tiers || [],
+      variants: (values.variants || []).map(v => ({
+        ...v,
+        sell_price: Number(v.sell_price || 0),
+        stock: Number(v.stock || 0)
+      })),
+      tiers: (values.tiers || []).map(t => ({
+        ...t,
+        min_qty: Number(t.min_qty || 0),
+        price: Number(t.price || 0)
+      })),
       min_stock: Number(values.min_stock),
       unit: values.unit || "PCS",
       location: values.location || null,
@@ -668,10 +676,10 @@ export default function ProductsPage() {
                           type="number"
                           placeholder="Mis. 5"
                           className="w-20 sm:w-24 rounded-lg border px-2.5 py-1.5 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
-                          value={t.min_qty || ""}
+                          value={t.min_qty ?? ""}
                           onChange={(e) => {
                             const list = [...(form.getValues("tiers") || [])];
-                            list[idx].min_qty = Number(e.target.value);
+                            list[idx].min_qty = e.target.value;
                             form.setValue("tiers", list);
                           }}
                         />
@@ -686,10 +694,10 @@ export default function ProductsPage() {
                           type="number"
                           placeholder="Harga (Rp)"
                           className="w-28 sm:w-32 rounded-lg border px-2.5 py-1.5 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
-                          value={t.price || ""}
+                          value={t.price ?? ""}
                           onChange={(e) => {
                             const list = [...(form.getValues("tiers") || [])];
-                            list[idx].price = Number(e.target.value);
+                            list[idx].price = e.target.value;
                             form.setValue("tiers", list);
                           }}
                         />
@@ -761,7 +769,7 @@ export default function ProductsPage() {
                             type="number"
                             placeholder="Harga"
                             className="mt-1 w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium dark:border-slate-700 dark:bg-slate-900"
-                            value={v.sell_price || ""}
+                            value={v.sell_price ?? ""}
                             onChange={(e) => {
                               const vars = [...form.getValues("variants")];
                               vars[idx].sell_price = e.target.value;
@@ -775,7 +783,7 @@ export default function ProductsPage() {
                             type="number"
                             placeholder="Stok"
                             className="mt-1 w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium dark:border-slate-700 dark:bg-slate-900"
-                            value={v.stock || ""}
+                            value={v.stock ?? ""}
                             onChange={(e) => {
                               const vars = [...form.getValues("variants")];
                               vars[idx].stock = e.target.value;

@@ -485,6 +485,38 @@ CREATE TABLE `product_variants` (
 -- --------------------------------------------------------
 
 --
+-- Struktur dari tabel `product_tiers`
+--
+
+CREATE TABLE `product_tiers` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `product_id` int(10) UNSIGNED NOT NULL,
+  `min_qty` int(11) NOT NULL DEFAULT 1,
+  `price` decimal(18,2) NOT NULL DEFAULT 0.00,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_pt_product` (`product_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `variant_tiers`
+--
+
+CREATE TABLE `variant_tiers` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `variant_id` int(10) UNSIGNED NOT NULL,
+  `min_qty` int(11) NOT NULL DEFAULT 1,
+  `price` decimal(18,2) NOT NULL DEFAULT 0.00,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_vt_variant` (`variant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Struktur dari tabel `product_categories`
 --
 
@@ -1490,6 +1522,18 @@ ALTER TABLE `products`
 --
 ALTER TABLE `product_variants`
   ADD CONSTRAINT `fk_pv_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
+
+--
+-- Ketidakleluasaan untuk tabel `product_tiers`
+--
+ALTER TABLE `product_tiers`
+  ADD CONSTRAINT `fk_pt_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
+
+--
+-- Ketidakleluasaan untuk tabel `variant_tiers`
+--
+ALTER TABLE `variant_tiers`
+  ADD CONSTRAINT `fk_vt_variant` FOREIGN KEY (`variant_id`) REFERENCES `product_variants` (`id`) ON DELETE CASCADE;
 
 --
 -- Ketidakleluasaan untuk tabel `product_categories`
