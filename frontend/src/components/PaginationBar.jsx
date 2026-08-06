@@ -1,45 +1,70 @@
 import clsx from "clsx";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getPageNumberItems } from "../utils/paginationItems";
 
 /**
- * « Prev [1][2]… Next » — konsisten di seluruh halaman ber-tabel.
+ * Modern Clean Pagination Bar: < 1 2 3 … 10 >
  * @param {{ page: number; pages: number; setPage: (n: number | ((p: number) => number)) => void; variant?: "default" | "compact"; className?: string }} props
  */
 export function PaginationBar({ page, pages, setPage, variant = "default", className }) {
   const safePages = Math.max(1, Math.floor(Number(pages) || 1));
   const safePage = Math.min(Math.max(1, Math.floor(Number(page) || 1)), safePages);
-  const items = safePages <= 1 ? [] : getPageNumberItems(safePage, safePages);
+  
+  // Custom number item generator if safePages is small vs large
+  const items = getPageNumberItems(safePage, safePages);
   const compact = variant === "compact";
 
-  const navBtn = compact
-    ? "rounded border border-slate-200 px-2 py-0.5 text-xs font-medium disabled:opacity-40 dark:border-slate-700"
-    : "rounded-xl border border-slate-200 px-3 py-1 text-sm disabled:opacity-40 dark:border-slate-700";
+  const btnNav = compact
+    ? "inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-40 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+    : "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-40 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800";
 
-  const edgeBtn = compact
-    ? "rounded border border-slate-200 px-2 py-0.5 text-xs font-medium disabled:opacity-40 dark:border-slate-700"
-    : "rounded-xl border border-slate-200 px-2.5 py-1 text-sm font-medium disabled:opacity-40 dark:border-slate-700";
+  const btnNum = compact
+    ? "inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-lg px-2 text-xs font-semibold tabular-nums transition-colors"
+    : "inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-xl px-3 text-sm font-semibold tabular-nums transition-colors";
 
-  const numBase = compact
-    ? "min-w-[1.75rem] rounded border px-1.5 py-0.5 text-xs font-medium tabular-nums dark:border-slate-700"
-    : "min-w-[2.25rem] rounded-xl border px-2.5 py-1 text-sm font-medium tabular-nums dark:border-slate-700";
+  if (safePages <= 1) {
+    return (
+      <div className={clsx("flex items-center gap-1.5", className)}>
+        <button type="button" disabled className={btnNav}>
+          <ChevronLeft className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+        </button>
+        <button
+          type="button"
+          className={clsx(
+            btnNum,
+            "border border-brand-600 bg-brand-600 text-white shadow-sm"
+          )}
+        >
+          1
+        </button>
+        <button type="button" disabled className={btnNav}>
+          <ChevronRight className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className={clsx("flex flex-wrap items-center gap-1", className)}>
+    <div className={clsx("flex flex-wrap items-center gap-1.5", className)}>
       <button
         type="button"
         disabled={safePage <= 1}
-        className={edgeBtn}
-        onClick={() => setPage(1)}
-        title="Halaman pertama"
+        className={btnNav}
+        onClick={() => setPage((p) => Math.max(1, p - 1))}
+        title="Sebelumnya"
       >
-        «
+        <ChevronLeft className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
       </button>
-      <button type="button" disabled={safePage <= 1} className={navBtn} onClick={() => setPage((p) => p - 1)}>
-        Prev
-      </button>
+
       {items.map((item, idx) =>
         item.type === "ellipsis" ? (
-          <span key={item.key ?? `ellipsis-${idx}`} className={clsx("px-1 text-slate-400", compact ? "text-xs" : "text-sm")}>
+          <span
+            key={item.key ?? `ellipsis-${idx}`}
+            className={clsx(
+              "flex items-center justify-center px-1 text-slate-400 select-none",
+              compact ? "h-7 text-xs" : "h-9 text-sm"
+            )}
+          >
             …
           </span>
         ) : (
@@ -47,10 +72,10 @@ export function PaginationBar({ page, pages, setPage, variant = "default", class
             key={item.value}
             type="button"
             className={clsx(
-              numBase,
+              btnNum,
               safePage === item.value
-                ? "border-brand-600 bg-brand-600 text-white shadow-sm"
-                : "border-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800"
+                ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500"
+                : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             )}
             onClick={() => setPage(item.value)}
           >
@@ -58,17 +83,15 @@ export function PaginationBar({ page, pages, setPage, variant = "default", class
           </button>
         )
       )}
-      <button type="button" disabled={safePage >= safePages} className={navBtn} onClick={() => setPage((p) => p + 1)}>
-        Next
-      </button>
+
       <button
         type="button"
         disabled={safePage >= safePages}
-        className={edgeBtn}
-        onClick={() => setPage(safePages)}
-        title="Halaman terakhir"
+        className={btnNav}
+        onClick={() => setPage((p) => Math.min(safePages, p + 1))}
+        title="Berikutnya"
       >
-        »
+        <ChevronRight className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
       </button>
     </div>
   );
