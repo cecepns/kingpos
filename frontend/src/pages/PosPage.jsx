@@ -1522,14 +1522,17 @@ export default function PosPage() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
-              <button
-                type="button"
-                onClick={() => setPayOpen(true)}
-                disabled={!cart.length}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 py-3.5 text-base font-bold text-white shadow-soft hover:bg-brand-700 disabled:opacity-50"
-              >
-                <CreditCard className="h-5 w-5" /> Bayar ({formatIDR(grandTotal)})
-              </button>
+              <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 p-3.5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 xl:static xl:z-auto xl:border-0 xl:bg-transparent xl:p-0">
+                <button
+                  type="button"
+                  onClick={() => setPayOpen(true)}
+                  disabled={!cart.length}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 py-3.5 text-base font-bold text-white shadow-lg transition hover:bg-brand-700 active:scale-[0.99] disabled:opacity-50 xl:shadow-soft"
+                >
+                  <CreditCard className="h-5 w-5" /> Bayar ({formatIDR(grandTotal)})
+                </button>
+              </div>
+              <div className="h-16 xl:hidden" />
             </div>
           </div>
         </div>
