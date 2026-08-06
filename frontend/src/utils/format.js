@@ -9,12 +9,8 @@ export function formatThousandsIdInput(digitsOnly) {
 
 export function formatIDR(value) {
   const n = Number(value) || 0;
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(n);
+  const absFormatted = Math.abs(Math.round(n)).toLocaleString("id-ID");
+  return n < 0 ? `-Rp${absFormatted}` : `Rp${absFormatted}`;
 }
 
 /** Tanggal kalender lokal YYYY-MM-DD (bukan UTC — cocok untuk `<input type="date">` & filter API). */
