@@ -11,6 +11,9 @@ const defaultValues = {
   thermal_width_mm: "80",
   tax_default: "0",
   whatsapp_sender_note: "",
+  enable_pay_cash: "1",
+  enable_pay_transfer: "0",
+  enable_pay_qris: "0",
 };
 
 export default function SettingsPage() {
@@ -60,6 +63,23 @@ export default function SettingsPage() {
         <div>
           <label className="text-xs text-slate-500">Pajak default (%)</label>
           <input className="mt-1 w-full rounded-xl border px-3 py-2 dark:bg-slate-950" {...form.register("tax_default")} />
+        </div>
+        <div className="rounded-xl border p-3 dark:border-slate-800 space-y-2">
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Metode Pembayaran Kasir yang Aktif</label>
+          <div className="flex items-center gap-4 text-sm pt-1">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="rounded text-brand-600 focus:ring-brand-500 h-4 w-4" checked={form.watch("enable_pay_cash") === "1"} onChange={(e) => form.setValue("enable_pay_cash", e.target.checked ? "1" : "0")} />
+              <span>Tunai</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="rounded text-brand-600 focus:ring-brand-500 h-4 w-4" checked={form.watch("enable_pay_transfer") === "1"} onChange={(e) => form.setValue("enable_pay_transfer", e.target.checked ? "1" : "0")} />
+              <span>Transfer Bank</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="rounded text-brand-600 focus:ring-brand-500 h-4 w-4" checked={form.watch("enable_pay_qris") === "1"} onChange={(e) => form.setValue("enable_pay_qris", e.target.checked ? "1" : "0")} />
+              <span>QRIS</span>
+            </label>
+          </div>
         </div>
         <div>
           <label className="text-xs text-slate-500">Catatan WhatsApp</label>

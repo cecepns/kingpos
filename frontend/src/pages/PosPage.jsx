@@ -56,6 +56,16 @@ export default function PosPage() {
   const [taxPercent, setTaxPercent] = useState(0);
   const [notes, setNotes] = useState("");
   const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [additionalFee, setAdditionalFee] = useState(0);
+  const [additionalFeeName, setAdditionalFeeName] = useState("Ongkos Kirim");
+  const [feeModalOpen, setFeeModalOpen] = useState(false);
+  const [feeDraftName, setFeeDraftName] = useState("");
+  const [feeDraftAmt, setFeeDraftAmt] = useState("");
+
+  const [priceConfirmModalOpen, setPriceConfirmModalOpen] = useState(false);
+  const [pendingPriceChange, setPendingPriceChange] = useState(null); // { itemKey, newPrice }
+
+  const [enabledPayMethods, setEnabledPayMethods] = useState({ cash: true, transfer: true, qris: true });
   const [receiptCfg, setReceiptCfg] = useState({
     store_name: "",
     store_address: "",
@@ -145,8 +155,11 @@ export default function PosPage() {
           receipt_footer: data.receipt_footer || data.whatsapp_sender_note || "",
           thermal_width_mm: String(data.thermal_width_mm || "80"),
         });
-        const tx = Number(data.tax_default || 0);
-        if (!Number.isNaN(tx)) setTaxPercent(tx);
+        setEnabledPayMethods({
+          cash: data.enable_pay_cash !== "0",
+          transfer: data.enable_pay_transfer === "1",
+          qris: data.enable_pay_qris === "1",
+        });
       })
       .catch(() => {});
   }, []);
@@ -263,8 +276,8 @@ export default function PosPage() {
   }
 
   function updateLine(keyOrId, patch) {
-    setCart(
-      cart.map((c) => {
+    setCart((prevCart) =>
+      prevCart.map((c) => {
         const matches = c.item_key
           ? String(c.item_key) === String(keyOrId)
           : String(c.product_id) === String(keyOrId);
@@ -290,6 +303,37 @@ export default function PosPage() {
         return next;
       })
     );
+  }
+
+  function handlePriceChangeThisTxOnly() {
+    if (!pendingPriceChange) return;
+    const { itemKey, newPrice } = pendingPriceChange;
+    updateLine(itemKey, { sell_price: newPrice });
+    setPendingPriceChange(null);
+    setPriceConfirmModalOpen(false);
+    toast.success("Harga diubah untuk transaksi ini");
+  }
+
+  async function handlePriceChangePermanently() {
+    if (!pendingPriceChange) return;
+    const { itemKey, cartItem, newPrice } = pendingPriceChange;
+    const t = toast.loading("Memperbarui harga di database...");
+    try {
+      if (cartItem.variant_id) {
+        await api.put(`/api/products/${cartItem.product_id}/variants/${cartItem.variant_id}`, { sell_price: newPrice });
+      } else {
+        await api.put(`/api/products/${cartItem.product_id}`, { sell_price: newPrice });
+      }
+      updateLine(itemKey, { sell_price: newPrice });
+      toast.success(`Harga produk diperbarui menjadi ${formatIDR(newPrice)} secara permanen!`, { id: t });
+      fetchProductPage(productPage, false).catch(() => {});
+    } catch (err) {
+      toast.dismiss(t);
+      toast.error(err.response?.data?.error || "Gagal memperbarui harga permanen");
+    } finally {
+      setPendingPriceChange(null);
+      setPriceConfirmModalOpen(false);
+    }
   }
 
   function adjustQty(itemKey, c, delta) {
@@ -336,7 +380,7 @@ export default function PosPage() {
     [cart]
   );
   const taxAmount = useMemo(() => (subtotal - discountTotal) * (taxPercent / 100), [subtotal, discountTotal, taxPercent]);
-  const grandTotal = useMemo(() => subtotal - discountTotal + taxAmount, [subtotal, discountTotal, taxAmount]);
+  const grandTotal = useMemo(() => subtotal - discountTotal + taxAmount + (Number(additionalFee) || 0), [subtotal, discountTotal, taxAmount, additionalFee]);
 
   useEffect(() => {
     if (payOpen && !payModalOpenedRef.current) {
@@ -529,6 +573,8 @@ export default function PosPage() {
       customer_id: customerId ? Number(customerId) : null,
       discount_total: discountTotal,
       tax_percent: taxPercent,
+      additional_fee: additionalFee,
+      additional_fee_name: additionalFeeName,
       notes,
       sale_date: saleDate,
       status,
@@ -594,6 +640,8 @@ export default function PosPage() {
       discountTotal,
       taxPercent,
       taxAmount,
+      additionalFee,
+      additionalFeeName,
       grandTotal,
       paidSum,
       changeAmount: changeAmt,
@@ -708,6 +756,7 @@ export default function PosPage() {
     const ok = await resolveScannedCode(code);
     if (!ok) toast.error("Produk tidak ditemukan");
     e.target.value = "";
+    if (barcodeRef.current) barcodeRef.current.focus();
   }
 
   useEffect(() => {
@@ -884,6 +933,8 @@ export default function PosPage() {
             <ScanBarcode className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-400" />
             <input
               ref={barcodeRef}
+              inputMode="none"
+              autoFocus
               className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
               placeholder="Scan barcode USB / Hardware (Enter)"
               onKeyDown={handleBarcode}
@@ -1179,7 +1230,10 @@ export default function PosPage() {
                             return next;
                           });
                           const pv = parseOptionalFloat(rawSell ?? String(c.sell_price), c.sell_price, { min: 0 });
-                          updateLine(itemKey, { sell_price: pv });
+                          if (pv !== c.sell_price) {
+                            setPendingPriceChange({ itemKey, cartItem: c, newPrice: pv });
+                            setPriceConfirmModalOpen(true);
+                          }
                         }}
                       />
                     </div>
@@ -1301,6 +1355,42 @@ export default function PosPage() {
                 }}
               />
             </label>
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-1.5">
+                {additionalFeeName || "Biaya Tambahan"}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFeeDraftName(additionalFeeName);
+                    setFeeDraftAmt(additionalFee ? String(additionalFee) : "");
+                    setFeeModalOpen(true);
+                  }}
+                  className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                >
+                  {additionalFee > 0 ? "(Ubah)" : "+ Tambah Biaya"}
+                </button>
+              </span>
+              <span className="font-semibold">
+                {additionalFee > 0 ? (
+                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    +{formatIDR(additionalFee)}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdditionalFee(0);
+                        toast.success("Biaya tambahan dihapus");
+                      }}
+                      className="ml-1 text-xs text-red-500 hover:text-red-700"
+                      title="Hapus biaya"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ) : (
+                  "Rp0"
+                )}
+              </span>
+            </div>
             <div className="flex justify-between text-sm">
               <span>Pajak</span>
               <span>{formatIDR(taxAmount)}</span>
@@ -1359,66 +1449,72 @@ export default function PosPage() {
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-            <p className="text-sm font-medium">Cash</p>
-            <select
-              className="w-full rounded-lg border px-2 py-2 dark:border-slate-600 dark:bg-slate-950"
-              value={cashAccountId}
-              onChange={(e) => setCashAccountId(e.target.value)}
-            >
-              {cashAccounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="text"
-              inputMode="numeric"
-              className="w-full rounded-lg border px-2 py-2 dark:border-slate-600 dark:bg-slate-950"
-              placeholder="Jumlah cash (boleh lebih)"
-              value={formatThousandsIdInput(cashAmtStr)}
-              onChange={(e) => setCashAmtStr(e.target.value.replace(/\D/g, "").slice(0, 14))}
-            />
-          </div>
-          <div className="space-y-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-            <p className="text-sm font-medium">Transfer</p>
-            <select className="w-full rounded-lg border px-2 py-2 dark:border-slate-950" value={transferAcc} onChange={(e) => setTransferAcc(e.target.value)}>
-              <option value="">Rekening</option>
-              {cashAccounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="text"
-              inputMode="numeric"
-              className="w-full rounded-lg border px-2 py-2 dark:bg-slate-950"
-              placeholder="Jumlah"
-              value={formatThousandsIdInput(transferAmtStr)}
-              onChange={(e) => setTransferAmtStr(e.target.value.replace(/\D/g, "").slice(0, 14))}
-            />
-          </div>
-          <div className="space-y-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-            <p className="text-sm font-medium">QRIS</p>
-            <select className="w-full rounded-lg border px-2 py-2 dark:bg-slate-950" value={qrisAcc} onChange={(e) => setQrisAcc(e.target.value)}>
-              <option value="">Akun</option>
-              {cashAccounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="text"
-              inputMode="numeric"
-              className="w-full rounded-lg border px-2 py-2 dark:bg-slate-950"
-              placeholder="Jumlah"
-              value={formatThousandsIdInput(qrisAmtStr)}
-              onChange={(e) => setQrisAmtStr(e.target.value.replace(/\D/g, "").slice(0, 14))}
-            />
-          </div>
+          {enabledPayMethods.cash && (
+            <div className="space-y-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
+              <p className="text-sm font-medium">Cash (Tunai)</p>
+              <select
+                className="w-full rounded-lg border px-2 py-2 dark:border-slate-600 dark:bg-slate-950"
+                value={cashAccountId}
+                onChange={(e) => setCashAccountId(e.target.value)}
+              >
+                {cashAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="w-full rounded-lg border px-2 py-2 text-base font-bold dark:border-slate-600 dark:bg-slate-950"
+                placeholder="Jumlah cash (boleh lebih)"
+                value={formatThousandsIdInput(cashAmtStr)}
+                onChange={(e) => setCashAmtStr(e.target.value.replace(/\D/g, "").slice(0, 14))}
+              />
+            </div>
+          )}
+          {enabledPayMethods.transfer && (
+            <div className="space-y-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
+              <p className="text-sm font-medium">Transfer Bank</p>
+              <select className="w-full rounded-lg border px-2 py-2 dark:border-slate-950" value={transferAcc} onChange={(e) => setTransferAcc(e.target.value)}>
+                <option value="">Rekening</option>
+                {cashAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="w-full rounded-lg border px-2 py-2 dark:bg-slate-950"
+                placeholder="Jumlah"
+                value={formatThousandsIdInput(transferAmtStr)}
+                onChange={(e) => setTransferAmtStr(e.target.value.replace(/\D/g, "").slice(0, 14))}
+              />
+            </div>
+          )}
+          {enabledPayMethods.qris && (
+            <div className="space-y-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
+              <p className="text-sm font-medium">QRIS</p>
+              <select className="w-full rounded-lg border px-2 py-2 dark:bg-slate-950" value={qrisAcc} onChange={(e) => setQrisAcc(e.target.value)}>
+                <option value="">Akun</option>
+                {cashAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="w-full rounded-lg border px-2 py-2 dark:bg-slate-950"
+                placeholder="Jumlah"
+                value={formatThousandsIdInput(qrisAmtStr)}
+                onChange={(e) => setQrisAmtStr(e.target.value.replace(/\D/g, "").slice(0, 14))}
+              />
+            </div>
+          )}
           <div className="space-y-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800 md:col-span-2">
             <p className="text-sm font-medium">Piutang (sisa ke grand total)</p>
             <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -1438,59 +1534,59 @@ export default function PosPage() {
             )}
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2 border-b border-slate-100 pb-3 dark:border-slate-800">
-          <button
-            type="button"
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium dark:border-slate-600"
-            onClick={() => setCashAmtStr(String(Math.max(0, Math.round(grandTotal))))}
-          >
-            Isi tunai = total
-          </button>
-          <button
-            type="button"
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium dark:border-slate-600"
-            onClick={() => {
-              setCashAmtStr("");
-              setTransferAmtStr(String(Math.max(0, Math.round(grandTotal))));
-              if (!transferAcc && cashAccounts[0]) setTransferAcc(String(cashAccounts[0].id));
-            }}
-          >
-            Transfer saja = total
-          </button>
-          <button
-            type="button"
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium dark:border-slate-600"
-            onClick={() => {
-              setCashAmtStr("");
-              setTransferAmtStr("");
-              setQrisAmtStr(String(Math.max(0, Math.round(grandTotal))));
-              if (!qrisAcc && cashAccounts[0]) setQrisAcc(String(cashAccounts[0].id));
-            }}
-          >
-            QRIS saja = total
-          </button>
-          <button
-            type="button"
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium dark:border-slate-600"
-            onClick={() => {
-              setCashAmtStr("");
-              setTransferAmtStr("");
-              setQrisAmtStr("");
-            }}
-          >
-            Piutang saja (kosongkan tunai/transfer/QRIS)
-          </button>
-          <button
-            type="button"
-            className="rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-xs dark:border-slate-600"
-            onClick={() => {
-              setCashAmtStr("");
-              setTransferAmtStr("");
-              setQrisAmtStr("");
-            }}
-          >
-            Kosongkan nominal
-          </button>
+
+        {/* Saran Nominal Cepat Dynamic */}
+        <div className="mt-4 space-y-2 border-b border-slate-100 pb-3 dark:border-slate-800">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Saran Nominal Cepat:</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white shadow-soft transition hover:bg-brand-700 active:scale-95"
+              onClick={() => setCashAmtStr(String(Math.max(0, Math.round(grandTotal))))}
+            >
+              Uang Pas ({formatIDR(grandTotal)})
+            </button>
+            {(() => {
+              const exact = Math.max(0, Math.round(grandTotal));
+              if (exact <= 0) return null;
+              const suggestions = [];
+              const rawTiers = [
+                Math.ceil(exact / 5000) * 5000,
+                Math.ceil(exact / 10000) * 10000,
+                Math.ceil(exact / 20000) * 20000,
+                Math.ceil(exact / 50000) * 50000,
+                Math.ceil(exact / 100000) * 100000,
+                Math.ceil(exact / 500000) * 500000,
+              ];
+              for (const v of rawTiers) {
+                if (v > exact && !suggestions.includes(v)) {
+                  suggestions.push(v);
+                }
+                if (suggestions.length >= 4) break;
+              }
+              return suggestions.map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-800 shadow-xs hover:border-brand-500 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+                  onClick={() => setCashAmtStr(String(amt))}
+                >
+                  {formatIDR(amt)}
+                </button>
+              ));
+            })()}
+            <button
+              type="button"
+              className="rounded-xl border border-dashed border-slate-300 px-3 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              onClick={() => {
+                setCashAmtStr("");
+                setTransferAmtStr("");
+                setQrisAmtStr("");
+              }}
+            >
+              Reset / Kosongkan
+            </button>
+          </div>
         </div>
         {receiptWaShareBlock({
           compact: true,
@@ -1609,6 +1705,112 @@ export default function PosPage() {
                   </span>
                 </button>
               ))}
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      {/* Modal Biaya Tambahan */}
+      <Modal open={feeModalOpen} title="Tambah Biaya Tambahan" onClose={() => setFeeModalOpen(false)}>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Nama Biaya</label>
+            <input
+              type="text"
+              className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-slate-950"
+              placeholder="Contoh: Ongkos Kirim, Biaya Kemasan, Jasa Antar"
+              value={feeDraftName}
+              onChange={(e) => setFeeDraftName(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Nominal Biaya (Rp)</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              className="mt-1 w-full rounded-xl border px-3 py-2 text-sm font-bold outline-none dark:border-slate-700 dark:bg-slate-950"
+              placeholder="0"
+              value={formatThousandsIdInput(feeDraftAmt)}
+              onChange={(e) => setFeeDraftAmt(e.target.value.replace(/\D/g, "").slice(0, 12))}
+            />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              className="w-1/2 rounded-xl border py-2.5 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
+              onClick={() => setFeeModalOpen(false)}
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              className="w-1/2 rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+              onClick={() => {
+                const amt = Number(feeDraftAmt.replace(/\D/g, "")) || 0;
+                setAdditionalFee(amt);
+                setAdditionalFeeName(feeDraftName.trim() || "Biaya Tambahan");
+                setFeeModalOpen(false);
+                toast.success("Biaya tambahan diterapkan");
+              }}
+            >
+              Simpan Biaya
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Konfirmasi Perubahan Harga Produk */}
+      <Modal open={priceConfirmModalOpen} title="Konfirmasi Perubahan Harga" onClose={() => setPriceConfirmModalOpen(false)}>
+        {pendingPriceChange ? (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Harga produk <strong>{pendingPriceChange.cartItem?.name}</strong> diubah menjadi{" "}
+              <strong className="text-brand-600 dark:text-brand-400">{formatIDR(pendingPriceChange.newPrice)}</strong>.
+            </p>
+            <p className="text-xs text-slate-500">Pilih bagaimana perubahan harga ini ingin diterapkan:</p>
+
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                className="w-full rounded-2xl border border-slate-200 bg-white p-3.5 text-left transition hover:border-brand-500 hover:bg-brand-50/50 dark:border-slate-800 dark:bg-slate-900"
+                onClick={handlePriceChangeThisTxOnly}
+              >
+                <p className="text-sm font-bold text-slate-900 dark:text-white">1. Ubah harga hanya untuk transaksi ini</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Harga hanya berubah pada transaksi yang sedang berlangsung. Harga barang di database tetap seperti semula.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                className="w-full rounded-2xl border border-brand-200 bg-brand-50/60 p-3.5 text-left transition hover:border-brand-600 hover:bg-brand-100/70 dark:border-brand-900 dark:bg-brand-950/40"
+                onClick={handlePriceChangePermanently}
+              >
+                <p className="text-sm font-bold text-brand-900 dark:text-brand-300">2. Ubah harga secara permanen</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                  Harga produk akan diperbarui menjadi <strong>{formatIDR(pendingPriceChange.newPrice)}</strong> di database dan digunakan untuk semua transaksi berikutnya.
+                </p>
+              </button>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                className="rounded-xl border px-4 py-2 text-xs font-semibold"
+                onClick={() => {
+                  setPendingPriceChange(null);
+                  setPriceConfirmModalOpen(false);
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700"
+                onClick={handlePriceChangePermanently}
+              >
+                Ya, Ubah Permanen
+              </button>
             </div>
           </div>
         ) : null}

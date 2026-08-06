@@ -24,6 +24,8 @@ export function buildThermalReceiptHtml({
   discountTotal = 0,
   taxPercent = 0,
   taxAmount = 0,
+  additionalFee = 0,
+  additionalFeeName = "Biaya Tambahan",
   grandTotal = 0,
   paidSum = 0,
   changeAmount = 0,
@@ -84,6 +86,7 @@ ${lineRows}
 <div class="row"><span>Subtotal</span><span>${formatIDR(subtotal)}</span></div>
 ${discountTotal > 0 ? `<div class="row muted"><span>Diskon total</span><span>- ${formatIDR(discountTotal)}</span></div>` : ""}
 ${taxPercent > 0 ? `<div class="row muted"><span>Pajak ${taxPercent}%</span><span>${formatIDR(taxAmount)}</span></div>` : ""}
+${additionalFee > 0 ? `<div class="row muted"><span>${esc(additionalFeeName || "Biaya Tambahan")}</span><span>+ ${formatIDR(additionalFee)}</span></div>` : ""}
 <div class="row tot"><span>TOTAL</span><span>${formatIDR(grandTotal)}</span></div>
 ${payRows ? `<hr/><div class="small">Bayar:</div>${payRows}` : ""}
 ${changeAmount > 0 ? `<div class="row" style="font-weight:700"><span>Kembalian</span><span>${formatIDR(changeAmount)}</span></div>` : ""}
@@ -100,6 +103,8 @@ export function buildReceiptWhatsAppText({
   discountTotal,
   taxPercent,
   taxAmount,
+  additionalFee = 0,
+  additionalFeeName = "Biaya Tambahan",
   grandTotal,
   changeAmount,
   payments,
@@ -119,6 +124,7 @@ export function buildReceiptWhatsAppText({
   let foot = `\n---\nSubtotal ${formatIDR(subtotal)}`;
   if (discountTotal > 0) foot += `\nDiskon -${formatIDR(discountTotal)}`;
   if (taxPercent > 0) foot += `\nPajak ${taxPercent}% ${formatIDR(taxAmount)}`;
+  if (additionalFee > 0) foot += `\n${additionalFeeName || "Biaya Tambahan"} +${formatIDR(additionalFee)}`;
   foot += `\n*TOTAL ${formatIDR(grandTotal)}*`;
   if (payments?.length)
     foot += `\nBayar:\n${payments.map((p) => `- ${p.method}: ${formatIDR(p.amount)}`).join("\n")}`;

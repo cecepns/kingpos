@@ -176,10 +176,11 @@ export default function PriceCheckerPage() {
         </div>
       </header>
 
-      {/* Hidden Scanner Input */}
+      {/* Hidden Scanner Input (inputMode="none" agar keyboard virtual HP/Android tidak muncul) */}
       <input
         ref={inputRef}
         type="text"
+        inputMode="none"
         className="opacity-0 absolute top-0 left-0 h-0 w-0"
         value={code}
         onChange={(e) => setCode(e.target.value)}
@@ -205,33 +206,24 @@ export default function PriceCheckerPage() {
           </div>
         ) : product ? (
           <div className="bg-white rounded-3xl p-6 lg:p-8 max-w-5xl w-full shadow-xl text-slate-900 grid lg:grid-cols-12 gap-8 items-center border border-slate-200 animate-fade-in">
-            {/* Product Image & Info Column */}
-            <div className="lg:col-span-5 flex flex-col items-center text-center border-b lg:border-b-0 lg:border-r border-slate-200 pb-6 lg:pb-0 lg:pr-6">
-              <div className="w-56 h-56 lg:w-64 lg:h-64 rounded-2xl bg-slate-50 border border-slate-200 p-2 flex items-center justify-center overflow-hidden mb-4 shadow-sm">
-                {product.image_path ? (
-                  <img
-                    src={uploadSrc(product.image_path)}
-                    alt={product.name}
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center text-slate-400 gap-2">
-                    <ImageOff className="h-16 w-16 stroke-1" />
-                    <span className="text-xs font-medium">Tanpa Gambar</span>
-                  </div>
-                )}
-              </div>
-              <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-slate-900 uppercase leading-snug">
+            {/* Product Info Header (Tanpa Foto Produk) */}
+            <div className="lg:col-span-5 flex flex-col justify-center items-start text-left border-b lg:border-b-0 lg:border-r border-slate-200 pb-6 lg:pb-0 lg:pr-6 space-y-3">
+              <span className="bg-brand-100 text-brand-800 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                INFORMASI PRODUK
+              </span>
+              <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-slate-900 uppercase leading-snug">
                 {product.name}
               </h2>
               {matchedVariant ? (
-                <div className="mt-2 inline-block bg-brand-100 text-brand-800 text-sm font-extrabold px-3 py-1 rounded-full border border-brand-300">
+                <div className="inline-block bg-brand-600 text-white text-sm font-bold px-3.5 py-1.5 rounded-xl shadow-sm">
                   Varian: {matchedVariant.name}
                 </div>
               ) : null}
-              <p className="text-sm font-bold text-slate-500 mt-2 tracking-wider">
-                Barcode : <span className="font-mono text-slate-800">{product.barcode || product.sku}</span>
-              </p>
+              <div className="pt-2 border-t border-slate-100 w-full">
+                <p className="text-sm font-bold text-slate-500 tracking-wider">
+                  Barcode / SKU : <span className="font-mono text-slate-900 bg-slate-100 px-2 py-1 rounded-md">{product.barcode || product.sku}</span>
+                </p>
+              </div>
             </div>
 
             {/* Pricing Details Column */}

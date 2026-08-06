@@ -196,6 +196,8 @@ export default function TransactionsPage() {
         discountTotal: Number(detail.discount_total),
         taxPercent: Number(detail.tax_percent),
         taxAmount: Number(detail.tax_amount),
+        additionalFee: Number(detail.additional_fee || 0),
+        additionalFeeName: detail.additional_fee_name || "Biaya Tambahan",
         grandTotal: Number(detail.grand_total),
         paidSum: Number(detail.paid_amount),
         changeAmount: Number(detail.change_amount),
