@@ -306,10 +306,7 @@ export default function TransactionsPage() {
     <PageStack>
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Transaksi</h1>
-        <p className="text-sm text-slate-500">
-          Filter dan detail transaksi. Sisa piutang: klik ikon dompet untuk pelunasan (DP / cicilan).
-          {canAdminDeleteTx ? " Admin/owner: hapus permanen untuk transaksi selesai (tanpa sisa piutang) atau yang sudah refund." : ""}
-        </p>
+        <p className="text-sm text-slate-500">Riwayat dan kelola detail transaksi penjualan</p>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
