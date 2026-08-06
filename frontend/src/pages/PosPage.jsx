@@ -968,7 +968,7 @@ export default function PosPage() {
                     type="button"
                     disabled={left <= 0}
                     onClick={() => addToCart(p)}
-                    className="flex w-full gap-3 rounded-2xl border border-slate-100 bg-white p-3 text-left shadow-soft transition hover:border-brand-300 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-800 dark:bg-slate-900"
+                    className="flex w-full gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-xs transition hover:border-brand-400 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-800 dark:bg-slate-900"
                   >
                     <div className="min-w-0 flex-1 flex flex-col">
                       <span className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white">{p.name}</span>
@@ -1022,7 +1022,7 @@ export default function PosPage() {
           )}
         </div>
 
-        <div className="rounded-3xl border border-slate-100 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <h2 className="mb-3 font-semibold text-slate-900 dark:text-white">Keranjang</h2>
           <div className="mb-3 space-y-1.5">
             <label className="text-xs font-medium text-slate-500">Tanggal penjualan</label>
