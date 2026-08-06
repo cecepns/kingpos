@@ -80,6 +80,7 @@ export default function PosPage() {
   const [barcodeCopies, setBarcodeCopies] = useState("1");
   /** { [product_id]: { qty?, sell?, disc? } } */
   const [lineDraft, setLineDraft] = useState({});
+  const [discOpenKeys, setDiscOpenKeys] = useState({});
   const [discountDraft, setDiscountDraft] = useState(null);
   const [taxDraft, setTaxDraft] = useState(null);
   const barcodeRef = useRef(null);
@@ -264,16 +265,23 @@ export default function PosPage() {
   function updateLine(keyOrId, patch) {
     setCart(
       cart.map((c) => {
-        const matches = c.item_key ? c.item_key === keyOrId : c.product_id === keyOrId;
+        const matches = c.item_key
+          ? String(c.item_key) === String(keyOrId)
+          : String(c.product_id) === String(keyOrId);
         if (!matches) return c;
         let next = { ...c, ...patch };
+        if (patch.sell_price != null) {
+          next.is_custom_price = true;
+        }
         if (patch.qty != null) {
           const cap = lineQtyCap(c);
           let n = typeof patch.qty === "number" ? patch.qty : Number(patch.qty);
           if (!Number.isFinite(n)) n = c.qty;
           const mq = Math.max(1, Math.min(Math.trunc(n), cap));
           next.qty = mq;
-          next.sell_price = calculateUnitPrice(c, mq);
+          if (!next.is_custom_price) {
+            next.sell_price = calculateUnitPrice(c, mq);
+          }
         }
         if (patch.discount_amount != null) {
           const gross = next.sell_price * next.qty;
@@ -284,13 +292,37 @@ export default function PosPage() {
     );
   }
 
-  function removeLine(id) {
+  function adjustQty(itemKey, c, delta) {
+    const capQty = lineQtyCap(c);
+    const currentQ = Number(c.qty) || 1;
+    const newQ = Math.max(1, Math.min(capQty, currentQ + delta));
     setLineDraft((m) => {
+      const inner = { ...(m[itemKey] || {}) };
+      delete inner.qty;
       const next = { ...m };
-      delete next[id];
+      if (Object.keys(inner).length === 0) delete next[itemKey];
+      else next[itemKey] = inner;
       return next;
     });
-    setCart(cart.filter((c) => c.product_id !== id));
+    updateLine(itemKey, { qty: newQ });
+  }
+
+  function removeLine(keyOrId) {
+    if (keyOrId == null) return;
+    const targetKey = String(keyOrId);
+    setLineDraft((m) => {
+      const next = { ...m };
+      delete next[targetKey];
+      delete next[keyOrId];
+      return next;
+    });
+    setCart((prevCart) =>
+      prevCart.filter((c) => {
+        const k1 = c.item_key ? String(c.item_key) : "";
+        const k2 = c.product_id != null ? String(c.product_id) : "";
+        return k1 !== targetKey && k2 !== targetKey;
+      })
+    );
   }
 
   function lineQtyCap(c) {
@@ -1031,56 +1063,103 @@ export default function PosPage() {
               const discShow = ld.disc !== undefined ? ld.disc : String(Number(c.discount_amount || 0));
               const capQty = lineQtyCap(c);
               const isWholesaleActive = c.wholesale_price > 0 && c.wholesale_min_qty > 0 && c.qty >= c.wholesale_min_qty;
+              const isDiscOpen = disc > 0 || lineDraft[itemKey]?.disc !== undefined || !!discOpenKeys[itemKey];
               return (
-                <div key={itemKey} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-                  <div className="flex justify-between gap-2">
-                    <div>
-                      <span className="text-base font-semibold leading-snug text-slate-900 dark:text-white">{c.name}</span>
-                      {isWholesaleActive ? (
-                        <span className="ml-2 inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                          Harga Grosir Aktif
-                        </span>
-                      ) : null}
+                <div key={itemKey} className="group relative rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-xs transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900">
+                  {/* Card Header: Product Name, Badges & Delete Button */}
+                  <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5 dark:border-slate-800/60">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-bold text-slate-900 line-clamp-1 dark:text-white">{c.name}</h4>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {isWholesaleActive && (
+                          <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                            Harga Grosir (≥{c.wholesale_min_qty})
+                          </span>
+                        )}
+                        {c.is_custom_price && (
+                          <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                            Harga Custom
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <button type="button" onClick={() => removeLine(itemKey)} className="text-red-500 hover:text-red-700">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        removeLine(itemKey);
+                      }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-red-500 transition-colors hover:bg-red-50 active:scale-95 dark:hover:bg-red-950/40"
+                      title="Hapus item dari keranjang"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="mt-2 grid grid-cols-5 gap-2 text-xs">
-                    <label className="font-medium text-slate-700 dark:text-slate-300">
-                      Jumlah
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className="mt-1 min-h-[44px] w-full rounded-lg border px-2 py-2 text-base dark:border-slate-600 dark:bg-slate-950"
-                        value={qtyShow}
-                        onChange={(e) =>
-                          setLineDraft((m) => ({
-                            ...m,
-                            [itemKey]: { ...(m[itemKey] || {}), qty: e.target.value.replace(/\D/g, "").slice(0, 8) },
-                          }))
-                        }
-                        onBlur={() => {
-                          const rawQty = lineDraft[itemKey]?.qty;
-                          setLineDraft((m) => {
-                            const inner = { ...(m[itemKey] || {}) };
-                            delete inner.qty;
-                            const next = { ...m };
-                            if (Object.keys(inner).length === 0) delete next[itemKey];
-                            else next[itemKey] = inner;
-                            return next;
-                          });
-                          const qv = parseOptionalInt(rawQty ?? String(c.qty), c.qty, { min: 1, max: capQty });
-                          updateLine(itemKey, { qty: qv });
-                        }}
-                      />
-                    </label>
-                    <label className="col-span-2 font-medium text-slate-700 dark:text-slate-300">
-                      Harga jual (satuan)
+
+                  {/* Main Input Row: Jumlah Stepper (50%) | Harga Jual (50%) */}
+                  <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                    {/* Stepper Jumlah */}
+                    <div>
+                      <label className="mb-1 block text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        Jumlah
+                      </label>
+                      <div className="flex h-10 items-center justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-1.5 dark:border-slate-700 dark:bg-slate-950">
+                        <button
+                          type="button"
+                          onClick={() => adjustQty(itemKey, c, -1)}
+                          disabled={c.qty <= 1}
+                          className="flex h-7 w-7 aspect-square shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-white font-bold transition hover:bg-emerald-600 active:scale-95 disabled:opacity-30"
+                          title="Kurangi"
+                        >
+                          <Minus className="h-3.5 w-3.5 stroke-[3]" />
+                        </button>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          className="w-full text-center text-sm font-bold text-slate-900 bg-transparent outline-none dark:text-white"
+                          value={qtyShow}
+                          onChange={(e) =>
+                            setLineDraft((m) => ({
+                              ...m,
+                              [itemKey]: { ...(m[itemKey] || {}), qty: e.target.value.replace(/\D/g, "").slice(0, 8) },
+                            }))
+                          }
+                          onBlur={() => {
+                            const rawQty = lineDraft[itemKey]?.qty;
+                            setLineDraft((m) => {
+                              const inner = { ...(m[itemKey] || {}) };
+                              delete inner.qty;
+                              const next = { ...m };
+                              if (Object.keys(inner).length === 0) delete next[itemKey];
+                              else next[itemKey] = inner;
+                              return next;
+                            });
+                            const qv = parseOptionalInt(rawQty ?? String(c.qty), c.qty, { min: 1, max: capQty });
+                            updateLine(itemKey, { qty: qv });
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => adjustQty(itemKey, c, 1)}
+                          disabled={c.qty >= capQty}
+                          className="flex h-7 w-7 aspect-square shrink-0 items-center justify-center rounded-lg bg-red-500 text-white font-bold transition hover:bg-red-600 active:scale-95 disabled:opacity-30"
+                          title="Tambah"
+                        >
+                          <Plus className="h-3.5 w-3.5 stroke-[3]" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Harga Jual (Satuan) */}
+                    <div>
+                      <label className="mb-1 block text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        Harga Satuan (Rp)
+                      </label>
                       <input
                         type="text"
                         inputMode="decimal"
-                        className="mt-1 min-h-[44px] w-full rounded-lg border px-2 py-2 text-base dark:border-slate-600 dark:bg-slate-950"
+                        className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 shadow-xs outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                         value={sellShow}
                         onChange={(e) =>
                           setLineDraft((m) => ({
@@ -1099,42 +1178,83 @@ export default function PosPage() {
                             return next;
                           });
                           const pv = parseOptionalFloat(rawSell ?? String(c.sell_price), c.sell_price, { min: 0 });
-                          updateLine(c.product_id, { sell_price: pv });
+                          updateLine(itemKey, { sell_price: pv });
                         }}
                       />
-                    </label>
-                    <label className="col-span-2 font-medium text-slate-700 dark:text-slate-300">
-                      Diskon baris (rupiah)
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        className="mt-1 min-h-[44px] w-full rounded-lg border px-2 py-2 text-base dark:border-slate-600 dark:bg-slate-950"
-                        value={discShow}
-                        onChange={(e) =>
-                          setLineDraft((m) => ({
-                            ...m,
-                            [c.product_id]: { ...(m[c.product_id] || {}), disc: e.target.value.replace(/[^\d]/g, "").slice(0, 14) },
-                          }))
-                        }
-                        onBlur={() => {
-                          const rawDisc = lineDraft[c.product_id]?.disc;
-                          const g = c.sell_price * c.qty;
-                          setLineDraft((m) => {
-                            const inner = { ...(m[c.product_id] || {}) };
-                            delete inner.disc;
-                            const next = { ...m };
-                            if (Object.keys(inner).length === 0) delete next[c.product_id];
-                            else next[c.product_id] = inner;
-                            return next;
-                          });
-                          const dv = parseOptionalFloat(rawDisc ?? String(disc), disc, { min: 0, max: g });
-                          updateLine(c.product_id, { discount_amount: dv });
-                        }}
-                      />
-                    </label>
+                    </div>
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500">
-                    Margin: {formatIDR(net - c.purchase_price * c.qty)}
+
+                  {/* Diskon Baris: Collapsible / Expanded */}
+                  {isDiscOpen ? (
+                    <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-slate-200/60 bg-slate-50/80 p-2 dark:border-slate-800 dark:bg-slate-950/60">
+                      <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                        Diskon Baris (Rp)
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0"
+                          className="h-8 w-28 rounded-lg border border-slate-200 bg-white px-2.5 text-right text-xs font-bold text-slate-900 shadow-xs outline-none transition focus:border-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                          value={discShow}
+                          onChange={(e) =>
+                            setLineDraft((m) => ({
+                              ...m,
+                              [itemKey]: { ...(m[itemKey] || {}), disc: e.target.value.replace(/[^\d]/g, "").slice(0, 14) },
+                            }))
+                          }
+                          onBlur={() => {
+                            const rawDisc = lineDraft[itemKey]?.disc;
+                            const g = c.sell_price * c.qty;
+                            setLineDraft((m) => {
+                              const inner = { ...(m[itemKey] || {}) };
+                              delete inner.disc;
+                              const next = { ...m };
+                              if (Object.keys(inner).length === 0) delete next[itemKey];
+                              else next[itemKey] = inner;
+                              return next;
+                            });
+                            const dv = parseOptionalFloat(rawDisc ?? String(disc), disc, { min: 0, max: g });
+                            updateLine(itemKey, { discount_amount: dv });
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateLine(itemKey, { discount_amount: 0 });
+                            setDiscOpenKeys((prev) => {
+                              const next = { ...prev };
+                              delete next[itemKey];
+                              return next;
+                            });
+                          }}
+                          className="flex h-6 w-6 items-center justify-center rounded-md text-xs text-slate-400 hover:bg-slate-200 hover:text-red-500 dark:hover:bg-slate-800"
+                          title="Tutup / Reset Diskon"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex items-center justify-start">
+                      <button
+                        type="button"
+                        onClick={() => setDiscOpenKeys((prev) => ({ ...prev, [itemKey]: true }))}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                      >
+                        <Tags className="h-3 w-3" /> + Tambah Diskon Item
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Footer: Margin & Subtotal */}
+                  <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2 text-xs dark:border-slate-800">
+                    <span className="text-[11px] text-slate-400">
+                      Margin: <strong className="font-semibold text-emerald-600 dark:text-emerald-400">{formatIDR(net - c.purchase_price * c.qty)}</strong>
+                    </span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      Subtotal: {formatIDR(net)}
+                    </span>
                   </div>
                 </div>
               );

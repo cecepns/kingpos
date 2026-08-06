@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import toast from "react-hot-toast";
-import { Trash2 } from "lucide-react";
+import { Trash2, ShieldCheck, Shield, Save, Lock } from "lucide-react";
 import api from "../api/client";
 import { fetchAllPages } from "../api/fetchAllPages";
 import { PAGE_SIZE } from "../constants/pagination";
@@ -185,52 +185,133 @@ export default function UsersPage() {
       </div>
 
       <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-3 font-semibold text-slate-900 dark:text-white">Hak akses menu per role</h2>
-        <p className="mb-4 text-xs text-slate-500">
-          Admin selalu punya izin penuh. Centang menu yang boleh diakses per role (kasir / owner).
-        </p>
-        <div className="mb-4">
-          <label className="text-xs text-slate-500">Pilih role</label>
-          <select
-            className="mt-1 w-full max-w-md rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
-            value={roleTab}
-            onChange={(e) => setRoleTab(e.target.value)}
-          >
-            {roles.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name} — {r.description || ""}
-              </option>
-            ))}
-          </select>
-        </div>
-        {isAdminRole ? (
-          <p className="text-sm text-slate-600 dark:text-slate-400">Role admin memakai izin &quot;Semua akses&quot; dan tidak diubah di sini.</p>
-        ) : (
-          <>
-            <div className="mb-4 grid max-h-72 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
-              {permRows.map((p) => (
-                <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-sm dark:border-slate-800">
-                  <input
-                    type="checkbox"
-                    checked={roleCodes.includes(p.code)}
-                    onChange={(e) => {
-                      setRoleCodes((prev) =>
-                        e.target.checked ? [...new Set([...prev, p.code])] : prev.filter((c) => c !== p.code)
-                      );
-                    }}
-                  />
-                  <span>
-                    <span className="font-mono text-xs text-slate-500">{p.code}</span>
-                    <br />
-                    {p.description}
-                  </span>
-                </label>
-              ))}
+        <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950/50 dark:text-brand-400">
+              <ShieldCheck className="h-5 w-5" />
             </div>
-            <button type="button" onClick={saveRolePerms} className="rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white">
-              Simpan hak akses role ini
-            </button>
-          </>
+            <div>
+              <h2 className="font-semibold text-slate-900 dark:text-white">Hak Akses Menu per Role</h2>
+              <p className="text-xs text-slate-500">
+                Atur dan sesuaikan izin navigasi menu yang dapat diakses oleh setiap peran (role).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Role Selector Tabs */}
+        <div className="mb-6">
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Pilih Role
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            {roles.map((r) => {
+              const isActive = String(r.id) === String(roleTab);
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setRoleTab(String(r.id))}
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                    isActive
+                      ? "bg-brand-600 text-white shadow-md shadow-brand-600/20 dark:bg-brand-500"
+                      : "border border-slate-200/80 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Shield className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-400"}`} />
+                  <span>{r.name}</span>
+                  {r.description && (
+                    <span className={`text-xs ${isActive ? "text-brand-100" : "text-slate-400"}`}>
+                      ({r.description})
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {isAdminRole ? (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300">
+            <Lock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <h4 className="text-sm font-semibold">Role Admin Memiliki Izin Akses Penuh</h4>
+              <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-400">
+                Pengguna dengan role Admin secara otomatis memiliki semua hak akses menu sistem dan tidak memerlukan konfigurasi izin terpisah di sini.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Daftar Izin Menu ({roleCodes.length} dari {permRows.length} dipilih)
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRoleCodes(permRows.map((p) => p.code))}
+                  className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+                >
+                  Pilih Semua
+                </button>
+                <span className="text-slate-300 dark:text-slate-700">|</span>
+                <button
+                  type="button"
+                  onClick={() => setRoleCodes([])}
+                  className="text-xs font-medium text-slate-500 hover:underline dark:text-slate-400"
+                >
+                  Hapus Semua
+                </button>
+              </div>
+            </div>
+
+            <div className="grid max-h-80 grid-cols-1 gap-2.5 overflow-y-auto pr-1 sm:grid-cols-2">
+              {permRows.map((p) => {
+                const isChecked = roleCodes.includes(p.code);
+                return (
+                  <label
+                    key={p.id}
+                    className={`group flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm transition-all ${
+                      isChecked
+                        ? "border-brand-500/50 bg-brand-50/40 dark:border-brand-500/40 dark:bg-brand-950/20"
+                        : "border-slate-200/80 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:checked:bg-brand-600"
+                      onChange={(e) => {
+                        setRoleCodes((prev) =>
+                          e.target.checked ? [...new Set([...prev, p.code])] : prev.filter((c) => c !== p.code)
+                        );
+                      }}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-slate-900 dark:text-white">{p.description}</span>
+                      </div>
+                      <span className="mt-0.5 inline-block font-mono text-[11px] text-slate-400 dark:text-slate-500">
+                        {p.code}
+                      </span>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={saveRolePerms}
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-600/20 transition-all hover:bg-brand-700 active:scale-[0.98] dark:bg-brand-600 dark:hover:bg-brand-500"
+              >
+                <Save className="h-4 w-4" />
+                Simpan Hak Akses Role
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
