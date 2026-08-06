@@ -38,8 +38,10 @@ import {
   buildReceiptWhatsAppText,
   normalizeWhatsAppPhone,
   buildReceiptPlainText,
+  buildEscPosReceiptBinary,
   printViaWebBluetooth,
   printViaRawBT,
+  printViaRawBTBase64,
 } from "../utils/receipt";
 import { parseOptionalFloat, parseOptionalInt } from "../utils/numericInput";
 import { uploadSrc } from "../utils/uploadUrl";
@@ -665,7 +667,7 @@ export default function PosPage() {
 
   async function printCompletedBluetoothReceipt(tx) {
     if (!tx) return;
-    const txt = buildReceiptPlainText({
+    const binary = buildEscPosReceiptBinary({
       storeName: receiptCfg.store_name,
       storeAddress: receiptCfg.store_address,
       storePhone: receiptCfg.store_phone,
@@ -682,21 +684,21 @@ export default function PosPage() {
       grandTotal: tx.grand_total || 0,
       changeAmount: tx.change_amount || 0,
       payments: tx.payments || [],
-      widthChars: Number(receiptCfg.thermal_width_mm) <= 58 ? 32 : 48,
+      widthMm: Number(receiptCfg.thermal_width_mm) || 58,
     });
-    const t = toast.loading("Mencari & Menghubungkan Printer Bluetooth...");
+    const t = toast.loading("Mencetak ke Printer Bluetooth...");
     try {
-      await printViaWebBluetooth(txt);
+      await printViaWebBluetooth(binary);
       toast.success("Struk dikirim ke Printer Bluetooth!", { id: t });
     } catch (err) {
       toast.dismiss(t);
-      toast.error(err.message || "Gagal konek ke printer Bluetooth");
+      toast.error(err.message || "Printer Bluetooth SPP tidak merespons GATT. Gunakan tombol RawBT.");
     }
   }
 
   function printCompletedRawBtReceipt(tx) {
     if (!tx) return;
-    const txt = buildReceiptPlainText({
+    const binary = buildEscPosReceiptBinary({
       storeName: receiptCfg.store_name,
       storeAddress: receiptCfg.store_address,
       storePhone: receiptCfg.store_phone,
@@ -713,9 +715,9 @@ export default function PosPage() {
       grandTotal: tx.grand_total || 0,
       changeAmount: tx.change_amount || 0,
       payments: tx.payments || [],
-      widthChars: Number(receiptCfg.thermal_width_mm) <= 58 ? 32 : 48,
+      widthMm: Number(receiptCfg.thermal_width_mm) || 58,
     });
-    printViaRawBT(txt);
+    printViaRawBTBase64(binary);
   }
 
   function printCompletedReceipt(tx) {

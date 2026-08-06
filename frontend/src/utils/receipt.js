@@ -214,48 +214,197 @@ export function buildReceiptPlainText({
   return txt;
 }
 
-/** Mengubah Plain Text Struk menjadi Byte Array ESC/POS */
-export function textToEscPosBytes(text) {
-  const encoder = new TextEncoder();
-  const init = new Uint8Array([0x1b, 0x40]);
-  const cut = new Uint8Array([0x1d, 0x56, 0x00]);
-  const body = encoder.encode(text);
+import EscPosEncoder from "esc-pos-encoder";
 
-  const totalLength = init.length + body.length + cut.length;
-  const result = new Uint8Array(totalLength);
-  result.set(init, 0);
-  result.set(body, init.length);
-  result.set(cut, init.length + body.length);
-  return result;
+/** Membangun Data Biner ESC/POS menggunakan library esc-pos-encoder */
+export function buildEscPosReceiptBinary({
+  storeName = "Toko",
+  storeAddress = "",
+  storePhone = "",
+  footer = "",
+  invoiceNo = "—",
+  dateStr = "",
+  lines = [],
+  subtotal = 0,
+  discountTotal = 0,
+  taxPercent = 0,
+  taxAmount = 0,
+  additionalFee = 0,
+  additionalFeeName = "Biaya Tambahan",
+  grandTotal = 0,
+  paidSum = 0,
+  changeAmount = 0,
+  payments = [],
+  widthMm = 58,
+}) {
+  const encoder = new EscPosEncoder();
+  const maxCols = Number(widthMm) <= 58 ? 32 : 48;
+  const lineStr = "-".repeat(maxCols);
+  const doubleLine = "=".repeat(maxCols);
+
+  encoder.initialize().codepage("cp437").align("center").bold(true).size("normal").line(storeName).bold(false);
+
+  if (storeAddress) encoder.line(storeAddress);
+  if (storePhone) encoder.line(storePhone);
+  encoder.line(lineStr).align("left").line(`${invoiceNo}  ${dateStr}`).line(lineStr);
+
+  for (const c of lines) {
+    const rawDisc = Number(c.discount_amount || 0);
+    const sub = Number(c.sell_price) * Number(c.qty);
+    const net = sub - rawDisc;
+    encoder.line(c.name);
+    const qtyPrice = `  ${c.qty}x ${formatIDR(c.sell_price)}`;
+    const netStr = formatIDR(net);
+    const spaceCount = Math.max(1, maxCols - qtyPrice.length - netStr.length);
+    encoder.line(qtyPrice + " ".repeat(spaceCount) + netStr);
+    if (rawDisc > 0) {
+      encoder.line(`  (disc: -${formatIDR(rawDisc)})`);
+    }
+  }
+
+  encoder.line(lineStr);
+
+  const writePair = (left, right) => {
+    const space = Math.max(1, maxCols - left.length - right.length);
+    encoder.line(left + " ".repeat(space) + right);
+  };
+
+  writePair("Subtotal", formatIDR(subtotal));
+  if (discountTotal > 0) writePair("Diskon total", `-${formatIDR(discountTotal)}`);
+  if (taxPercent > 0) writePair(`Pajak ${taxPercent}%`, formatIDR(taxAmount));
+  if (additionalFee > 0) writePair(additionalFeeName || "Biaya Tambahan", `+${formatIDR(additionalFee)}`);
+
+  encoder.line(doubleLine).bold(true);
+  writePair("TOTAL", formatIDR(grandTotal));
+  encoder.bold(false).line(doubleLine);
+
+  if (payments?.length) {
+    for (const p of payments) {
+      writePair(`Bayar (${p.method})`, formatIDR(p.amount));
+    }
+  }
+  if (changeAmount > 0) {
+    writePair("Kembalian", formatIDR(changeAmount));
+  }
+
+  if (footer) {
+    encoder.line(lineStr).align("center").line(footer);
+  }
+
+  encoder.newline().newline().cut();
+  return encoder.encode();
+}
+
+/** Print via RawBT App (Intent Base64 Stream) — Paling stabil untuk Android & Printer Bluetooth SPP */
+export function printViaRawBTBase64(binaryData) {
+  const bytes = new Uint8Array(binaryData);
+  let binaryStr = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binaryStr += String.fromCharCode(bytes[i]);
+  }
+  const base64 = btoa(binaryStr);
+  const intentUrl = `intent:#Intent;scheme=rawbt;package=ru.a2ol.rawbtprint;S.base64=${encodeURIComponent(base64)};end;`;
+  window.location.href = intentUrl;
 }
 
 let savedBluetoothDevice = null;
 
-/** Print via Web Bluetooth API (Auto Reconnect & Instant 1-Click Print) */
-export async function printViaWebBluetooth(receiptText) {
+/** Helper untuk menyambung GATT dengan timeout 6 detik */
+async function connectGattWithTimeout(device, timeoutMs = 6000) {
+  return Promise.race([
+    device.gatt.connect(),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout: Printer Bluetooth (SPP) tidak merespons GATT Chrome. Gunakan tombol RawBT.")), timeoutMs)
+    ),
+  ]);
+}
+
+/** Hubungkan & Simpan Printer Bluetooth */
+export async function connectBluetoothPrinter() {
   if (!navigator.bluetooth) {
-    throw new Error("Web Bluetooth tidak didukung di browser ini. Gunakan Google Chrome pada Android.");
+    throw new Error("Web Bluetooth tidak didukung di browser ini. Gunakan Google Chrome (Android/PC).");
+  }
+  const device = await navigator.bluetooth.requestDevice({
+    acceptAllDevices: true,
+    optionalServices: [
+      "000018f0-0000-1000-8000-00805f9b34fb",
+      "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
+      "00001101-0000-1000-8000-00805f9b34fb",
+      "49535343-fe7d-4ae5-8fa9-9fafd205e455",
+    ],
+  });
+
+  if (!device.gatt.connected) {
+    await connectGattWithTimeout(device, 6000);
+  }
+  savedBluetoothDevice = device;
+  try {
+    localStorage.setItem("kingpos_bt_printer_name", device.name || "Printer Thermal");
+    localStorage.setItem("kingpos_bt_printer_id", device.id || "");
+  } catch {
+    /* */
+  }
+  return device;
+}
+
+/** Putuskan printer Bluetooth terpasang */
+export function disconnectBluetoothPrinter() {
+  if (savedBluetoothDevice && savedBluetoothDevice.gatt) {
+    try {
+      savedBluetoothDevice.gatt.disconnect();
+    } catch {
+      /* */
+    }
+  }
+  savedBluetoothDevice = null;
+  try {
+    localStorage.removeItem("kingpos_bt_printer_name");
+    localStorage.removeItem("kingpos_bt_printer_id");
+  } catch {
+    /* */
+  }
+}
+
+/** Cek Status Printer Bluetooth saat ini */
+export function getBluetoothPrinterStatus() {
+  const savedName = typeof localStorage !== "undefined" ? localStorage.getItem("kingpos_bt_printer_name") : null;
+  const isConnected = !!(savedBluetoothDevice && savedBluetoothDevice.gatt && savedBluetoothDevice.gatt.connected);
+  return {
+    isConnected,
+    savedName: savedName || (savedBluetoothDevice ? savedBluetoothDevice.name : null),
+    hasSavedDevice: !!(savedName || savedBluetoothDevice),
+  };
+}
+
+/** Print via Web Bluetooth API dengan esc-pos-encoder & timeout protection */
+export async function printViaWebBluetooth(binaryData) {
+  if (!navigator.bluetooth) {
+    throw new Error("Web Bluetooth tidak didukung di browser ini. Gunakan Google Chrome pada Android/PC.");
   }
 
   let device = savedBluetoothDevice;
 
-  // Jika belum ada device tersimpan atau terputus, hubungkan ke device
-  if (!device || !device.gatt) {
-    device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: [
-        "000018f0-0000-1000-8000-00805f9b34fb",
-        "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
-        "00001101-0000-1000-8000-00805f9b34fb",
-        "49535343-fe7d-4ae5-8fa9-9fafd205e455",
-      ],
-    });
-    savedBluetoothDevice = device;
+  if (!device && typeof navigator.bluetooth.getDevices === "function") {
+    try {
+      const paired = await navigator.bluetooth.getDevices();
+      const savedId = localStorage.getItem("kingpos_bt_printer_id");
+      const savedName = localStorage.getItem("kingpos_bt_printer_name");
+      if (paired && paired.length > 0) {
+        device = paired.find((d) => (savedId && d.id === savedId) || (savedName && d.name === savedName)) || paired[0];
+        if (device) savedBluetoothDevice = device;
+      }
+    } catch {
+      /* */
+    }
+  }
+
+  if (!device) {
+    device = await connectBluetoothPrinter();
   }
 
   let server = device.gatt.connected ? device.gatt : null;
   if (!server) {
-    server = await device.gatt.connect();
+    server = await connectGattWithTimeout(device, 6000);
   }
 
   const services = await server.getPrimaryServices();
@@ -273,11 +422,10 @@ export async function printViaWebBluetooth(receiptText) {
   }
 
   if (!targetChar) {
-    savedBluetoothDevice = null;
     throw new Error("Karakteristik penulisan Bluetooth printer tidak ditemukan.");
   }
 
-  const bytes = textToEscPosBytes(receiptText);
+  const bytes = new Uint8Array(binaryData);
   const chunkSize = 512;
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.slice(i, i + chunkSize);
@@ -289,7 +437,7 @@ export async function printViaWebBluetooth(receiptText) {
   }
 }
 
-/** Print via RawBT App Intent (Android) */
+/** Legacy RawBT Text Intent */
 export function printViaRawBT(receiptText) {
   const intentUrl = "intent:#Intent;scheme=rawbt;package=ru.a2ol.rawbtprint;S.txt=" + encodeURIComponent(receiptText) + ";end;";
   window.location.href = intentUrl;
