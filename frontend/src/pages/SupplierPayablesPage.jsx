@@ -317,10 +317,8 @@ export default function SupplierPayablesPage() {
             )}
           </div>
 
-          <div className="flex flex-col gap-2 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-            <span>
-              Hal {pageH} / {pagesH} · {payTotal} faktur
-            </span>
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-sm text-slate-500 dark:border-slate-800">
+            <span>{payTotal} faktur</span>
             <PaginationBar page={pageH} pages={pagesH} setPage={setPageH} />
           </div>
         </>
@@ -424,10 +422,8 @@ export default function SupplierPayablesPage() {
             )}
           </div>
 
-          <div className="flex flex-col gap-2 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-            <span>
-              Hal {pageB} / {pagesB} · {purTotal} entri
-            </span>
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-sm text-slate-500 dark:border-slate-800">
+            <span>{purTotal} entri</span>
             <PaginationBar page={pageB} pages={pagesB} setPage={setPageB} />
           </div>
         </>

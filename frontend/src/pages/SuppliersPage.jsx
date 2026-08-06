@@ -141,10 +141,7 @@ export default function SuppliersPage() {
         )}
       </div>
 
-      <div className="flex flex-col gap-2 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-        <span>
-          Hal {page} / {pages}
-        </span>
+      <div className="flex items-center justify-end border-t border-slate-100 pt-3 dark:border-slate-800">
         <PaginationBar page={page} pages={pages} setPage={setPage} />
       </div>
 
