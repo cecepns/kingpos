@@ -17,6 +17,10 @@ import {
   UserCheck,
   Camera,
   Send,
+  CheckCircle2,
+  Check,
+  Ticket,
+  Share2,
 } from "lucide-react";
 import Select from "react-select";
 import JsBarcode from "jsbarcode";
@@ -102,6 +106,8 @@ export default function PosPage() {
   const draftResumeIdRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [receiptWaPhone, setReceiptWaPhone] = useState("");
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [completedTx, setCompletedTx] = useState(null);
 
   const fetchProductPage = useCallback(
     async (pageNum, append) => {
@@ -602,6 +608,34 @@ export default function PosPage() {
       } catch {
         /* */
       }
+      if (status === "completed") {
+        const pays = receiptPaymentsFromDraft();
+        const paidSum = pays.reduce((s, p) => s + p.amount, 0);
+        const changeAmt = Math.max(0, paidSum - grandTotal);
+        const queueNo = data.id ? `#${data.id}` : `#${data.invoice_no || "1"}`;
+
+        setCompletedTx({
+          id: data.id,
+          invoice_no: data.invoice_no || `INV-${data.id}`,
+          queue_no: queueNo,
+          grand_total: data.grand_total ?? grandTotal,
+          paid_amount: paidSumDraft > 0 ? paidSumDraft : paidSum,
+          change_amount: data.change_amount ?? changeAmt,
+          sale_date: saleDate,
+          lines: [...cart],
+          subtotal,
+          discountTotal,
+          taxPercent,
+          taxAmount,
+          additionalFee,
+          additionalFeeName,
+          payments: pays,
+          customer: customers.find((c) => String(c.id) === String(customerId)) || null,
+          receiptWaPhone,
+        });
+        setSuccessModalOpen(true);
+      }
+
       setCart([]);
       setLineDraft({});
       setDiscountTotal(0);
@@ -619,6 +653,88 @@ export default function PosPage() {
     } catch {
       toast.dismiss(t);
     }
+  }
+
+  function printCompletedReceipt(tx) {
+    if (!tx) return;
+    const w = window.open("", "_blank", "width=380,height=720");
+    if (!w) return toast.error("Popup diblokir");
+    const html = buildThermalReceiptHtml({
+      storeName: receiptCfg.store_name,
+      storeAddress: receiptCfg.store_address,
+      storePhone: receiptCfg.store_phone,
+      footer: receiptCfg.receipt_footer,
+      widthMm: Number(receiptCfg.thermal_width_mm) || 80,
+      invoiceNo: tx.invoice_no,
+      dateStr: tx.sale_date || new Date().toLocaleDateString("id-ID"),
+      lines: tx.lines || [],
+      subtotal: tx.subtotal || 0,
+      discountTotal: tx.discountTotal || 0,
+      taxPercent: tx.taxPercent || 0,
+      taxAmount: tx.taxAmount || 0,
+      additionalFee: tx.additionalFee || 0,
+      additionalFeeName: tx.additionalFeeName || "Biaya Tambahan",
+      grandTotal: tx.grand_total || 0,
+      paidSum: tx.paid_amount || 0,
+      changeAmount: tx.change_amount || 0,
+      payments: tx.payments || [],
+    });
+    w.document.write(html);
+    w.document.close();
+  }
+
+  function printCompletedQueueTicket(tx) {
+    if (!tx) return;
+    const w = window.open("", "_blank", "width=380,height=500");
+    if (!w) return toast.error("Popup diblokir");
+    const queueNo = tx.queue_no || `#${tx.id}`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Nomor Antrian</title>
+<style>
+  @page { size: ${Number(receiptCfg.thermal_width_mm) || 80}mm auto; margin: 2mm; }
+  html,body{margin:0;padding:0;font-family:system-ui,sans-serif;text-align:center;}
+  .wrap{max-width:${Number(receiptCfg.thermal_width_mm) || 80}mm;margin:0 auto;padding:12px 6px;}
+  .store{font-weight:700;font-size:14px;margin-bottom:8px;}
+  .lbl{font-size:12px;font-weight:600;color:#444;margin-top:10px;}
+  .num{font-size:42px;font-weight:900;margin:8px 0;letter-spacing:1px;}
+  .inv{font-size:11px;color:#666;}
+  .ftr{font-size:10px;color:#777;margin-top:14px;border-top:1px dashed #aaa;padding-top:8px;}
+</style></head><body><div class="wrap">
+<div class="store">${receiptCfg.store_name || "Toko"}</div>
+<div class="lbl">NOMOR ANTRIAN</div>
+<div class="num">${queueNo}</div>
+<div class="inv">${tx.invoice_no} · ${tx.sale_date}</div>
+<div class="ftr">Silakan simpan nomor ini.<br/>Terima kasih atas kunjungan Anda!</div>
+</div><script>window.onload=function(){window.print();}<\/script></body></html>`;
+    w.document.write(html);
+    w.document.close();
+  }
+
+  function shareCompletedWa(tx) {
+    if (!tx) return;
+    const custWa = tx.customer?.whatsapp || tx.receiptWaPhone || receiptWaPhone;
+    const wa = normalizeWhatsAppPhone(custWa);
+    if (!wa) {
+      toast.error("Nomor WhatsApp pelanggan tidak tersedia. Isi nomor WA terlebih dahulu.");
+      return;
+    }
+    const text = encodeURIComponent(
+      buildReceiptWhatsAppText({
+        storeName: receiptCfg.store_name,
+        invoiceNo: tx.invoice_no,
+        dateStr: tx.sale_date,
+        lines: tx.lines || [],
+        subtotal: tx.subtotal || 0,
+        discountTotal: tx.discountTotal || 0,
+        taxPercent: tx.taxPercent || 0,
+        taxAmount: tx.taxAmount || 0,
+        additionalFee: tx.additionalFee || 0,
+        additionalFeeName: tx.additionalFeeName || "Biaya Tambahan",
+        grandTotal: tx.grand_total || 0,
+        payments: tx.payments || [],
+        changeAmount: tx.change_amount || 0,
+      })
+    );
+    window.open(`https://wa.me/${wa}?text=${text}`, "_blank");
   }
 
   function openPrintReceipt() {
@@ -1814,6 +1930,100 @@ export default function PosPage() {
             </div>
           </div>
         ) : null}
+      </Modal>
+
+      {/* Modal Popup Sukses Transaksi */}
+      <Modal open={successModalOpen} onClose={() => setSuccessModalOpen(false)}>
+        {completedTx && (
+          <div className="py-2 text-center space-y-4">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 shadow-inner">
+              <CheckCircle2 className="h-12 w-12 stroke-[2.2]" />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">Transaksi Berhasil!</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Data telah disimpan ke dalam sistem</p>
+            </div>
+
+            {/* Rincian Ringkas Transaksi */}
+            <div className="rounded-2xl border border-amber-200/70 bg-amber-50/70 p-4 text-left shadow-xs dark:border-slate-700 dark:bg-slate-800/80 space-y-2.5">
+              <div className="flex items-center justify-between border-b border-amber-200/50 dark:border-slate-700/60 pb-2">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">No. Antrian</span>
+                <span className="text-xl font-black text-slate-900 dark:text-white font-mono">{completedTx.queue_no}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-400 pt-1">
+                <span>Total Harga</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">{formatIDR(completedTx.grand_total)}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-400">
+                <span>Dibayar</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">{formatIDR(completedTx.paid_amount)}</span>
+              </div>
+              <div className="mt-2 rounded-xl bg-amber-100/80 dark:bg-slate-700/80 p-3 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Kembalian</span>
+                <span className="text-base font-black text-emerald-700 dark:text-emerald-300">{formatIDR(completedTx.change_amount)}</span>
+              </div>
+            </div>
+
+            {/* Opsi Action: Selesai, Struk, Antrian, Bagikan */}
+            <div className="grid grid-cols-4 gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSuccessModalOpen(false)}
+                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-soft group-hover:scale-105 transition">
+                  <Check className="h-5 w-5 stroke-[3]" />
+                </div>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Selesai</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => printCompletedReceipt(completedTx)}
+                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition group"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-emerald-500 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 shadow-soft group-hover:scale-105 transition">
+                  <Printer className="h-5 w-5 stroke-[2.5]" />
+                </div>
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Struk</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => printCompletedQueueTicket(completedTx)}
+                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 shadow-xs group-hover:scale-105 transition">
+                  <Ticket className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Antrian</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => shareCompletedWa(completedTx)}
+                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 shadow-xs group-hover:scale-105 transition">
+                  <Share2 className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Bagikan</span>
+              </button>
+            </div>
+
+            {/* Tombol Buat Transaksi Baru */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setSuccessModalOpen(false)}
+                className="w-full rounded-2xl bg-amber-500 hover:bg-amber-600 active:scale-98 text-slate-950 font-black text-sm py-3.5 shadow-md shadow-amber-500/20 transition"
+              >
+                Buat Transaksi Baru
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </PageStack>
   );
