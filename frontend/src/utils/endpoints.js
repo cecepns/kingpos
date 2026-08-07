@@ -7,6 +7,8 @@ export const API_ENDPOINTS = {
     LIST: "/api/products",
     DETAIL: (id) => `/api/products/${id}`,
     UPDATE: (id) => `/api/products/${id}`,
+    UPDATE_PRICE: (id) => `/api/products/${id}/quick-price`,
+    UPDATE_VARIANT_PRICE: (productId, variantId) => `/api/products/${productId}/variants/${variantId}/quick-price`,
   },
   TRANSACTIONS: {
     LIST: "/api/transactions",

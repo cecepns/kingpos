@@ -940,6 +940,42 @@ app.post(
   })
 );
 
+app.all(
+  ["/api/products/:id/quick-price", "/api/products/:id/variants/:variantId/quick-price"],
+  requireAuth,
+  requireRoles("admin", "owner", "kasir"),
+  asyncHandler(async (req, res, next) => {
+    if (req.method !== "PATCH" && req.method !== "PUT") return next();
+
+    const { id: pid, variantId } = req.params;
+    const sellPriceNum = Number(req.body.sell_price);
+
+    if (req.body.sell_price === undefined || req.body.sell_price === null || isNaN(sellPriceNum) || sellPriceNum < 0) {
+      return res.status(400).json({ error: "Harga jual tidak valid" });
+    }
+
+    if (variantId) {
+      const [result] = await pool.query(
+        `UPDATE product_variants SET sell_price = ? WHERE id = ? AND product_id = ?`,
+        [sellPriceNum, variantId, pid]
+      );
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "Varian tidak ditemukan" });
+      }
+    } else {
+      const [result] = await pool.query(
+        `UPDATE products SET sell_price = ? WHERE id = ?`,
+        [sellPriceNum, pid]
+      );
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "Produk tidak ditemukan" });
+      }
+    }
+
+    res.json({ ok: true, sell_price: sellPriceNum });
+  })
+);
+
 app.put(
   "/api/products/:id",
   requireAuth,
@@ -947,6 +983,9 @@ app.put(
   asyncHandler(async (req, res) => {
     const b = req.body;
     const pid = req.params.id;
+    if (!b.name || !String(b.name).trim()) {
+      return res.status(400).json({ error: "Nama produk wajib diisi" });
+    }
     const sku = await generateUniqueSku(b.sku, pid);
     const stockPart =
       b.stock !== undefined && b.stock !== null && String(b.stock).trim() !== ""

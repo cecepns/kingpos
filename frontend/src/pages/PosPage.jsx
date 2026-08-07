@@ -28,6 +28,7 @@ import Select from "react-select";
 import JsBarcode from "jsbarcode";
 import { Html5Qrcode } from "html5-qrcode";
 import api from "../api/client";
+import { API_ENDPOINTS } from "../utils/endpoints";
 import { fetchAllPages } from "../api/fetchAllPages";
 import { PAGE_SIZE } from "../constants/pagination";
 import { formatIDR, formatThousandsIdInput } from "../utils/format";
@@ -338,9 +339,9 @@ export default function PosPage() {
     const t = toast.loading("Memperbarui harga di database...");
     try {
       if (cartItem.variant_id) {
-        await api.put(`/api/products/${cartItem.product_id}/variants/${cartItem.variant_id}`, { sell_price: newPrice });
+        await api.patch(API_ENDPOINTS.PRODUCTS.UPDATE_VARIANT_PRICE(cartItem.product_id, cartItem.variant_id), { sell_price: newPrice });
       } else {
-        await api.put(`/api/products/${cartItem.product_id}`, { sell_price: newPrice });
+        await api.patch(API_ENDPOINTS.PRODUCTS.UPDATE_PRICE(cartItem.product_id), { sell_price: newPrice });
       }
       updateLine(itemKey, { sell_price: newPrice });
       toast.success(`Harga produk diperbarui menjadi ${formatIDR(newPrice)} secara permanen!`, { id: t });
