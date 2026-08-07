@@ -1059,10 +1059,24 @@ app.delete(
   requireAuth,
   requireRoles("admin"),
   asyncHandler(async (req, res) => {
-    const [rows] = await pool.query(`SELECT image_path FROM products WHERE id=?`, [req.params.id]);
+    const productId = req.params.id;
+    const [rows] = await pool.query(`SELECT image_path FROM products WHERE id=?`, [productId]);
     if (!rows.length) return res.status(404).json({ error: "Produk tidak ada" });
+
+    // Check if product is referenced in transaction items or stock movements
+    const [[{ txCount }]] = await pool.query(
+      `SELECT COUNT(*) AS txCount FROM transaction_items WHERE product_id=?`,
+      [productId]
+    );
+
+    if (Number(txCount) > 0) {
+      // Soft delete: turn product inactive to prevent foreign key constraint failure while hiding it
+      await pool.query(`UPDATE products SET is_active=0 WHERE id=?`, [productId]);
+      return res.json({ ok: true, message: "Produk dinonaktifkan karena terdapat riwayat transaksi." });
+    }
+
     const prev = rows[0].image_path;
-    await pool.query(`DELETE FROM products WHERE id=?`, [req.params.id]);
+    await pool.query(`DELETE FROM products WHERE id=?`, [productId]);
     unlinkProductImageFile(prev);
     res.json({ ok: true });
   })

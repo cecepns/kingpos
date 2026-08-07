@@ -862,8 +862,12 @@ export default function ProductsPage() {
         message="Data yang dihapus tidak dapat dikembalikan."
         danger
         onConfirm={async () => {
-          await api.delete(`/api/products/${delId}`);
-          toast.success("Dihapus");
+          const res = await api.delete(`/api/products/${delId}`);
+          if (res?.data?.message) {
+            toast.success(res.data.message);
+          } else {
+            toast.success("Dihapus");
+          }
           load();
         }}
         onClose={() => setDelId(null)}
