@@ -109,13 +109,52 @@ export default function PosPage() {
   const [discOpenKeys, setDiscOpenKeys] = useState({});
   const [discountDraft, setDiscountDraft] = useState(null);
   const [taxDraft, setTaxDraft] = useState(null);
-  const barcodeRef = useRef(null);
+  const desktopBarcodeRef = useRef(null);
+  const mobileBarcodeRef = useRef(null);
+  const cartContainerRef = useRef(null);
   const cameraScannerRef = useRef(null);
   const cameraBusyRef = useRef(false);
   const cameraStartedRef = useRef(false);
   const resolveScannedCodeRef = useRef(null);
   const payModalOpenedRef = useRef(false);
   const draftResumeIdRef = useRef(null);
+
+  const focusBarcodeInputs = useCallback(() => {
+    if (desktopBarcodeRef.current) {
+      desktopBarcodeRef.current.focus({ preventScroll: true });
+    }
+    if (mobileBarcodeRef.current) {
+      mobileBarcodeRef.current.focus({ preventScroll: true });
+    }
+    if (typeof window !== "undefined" && "virtualKeyboard" in navigator) {
+      try {
+        navigator.virtualKeyboard.hide();
+      } catch {
+        /* */
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (cartContainerRef.current && cart.length > 0) {
+      const el = cartContainerRef.current;
+      const scrollToBottom = () => {
+        if (el) {
+          el.scrollTo({
+            top: el.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      };
+      scrollToBottom();
+      const animFrame = requestAnimationFrame(scrollToBottom);
+      const timer = setTimeout(scrollToBottom, 60);
+      return () => {
+        cancelAnimationFrame(animFrame);
+        clearTimeout(timer);
+      };
+    }
+  }, [cart]);
   const [selectProductModalOpen, setSelectProductModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [receiptWaPhone, setReceiptWaPhone] = useState("");
@@ -254,13 +293,13 @@ export default function PosPage() {
       const ex = cart[exIndex];
       const newQty = ex.qty + 1;
       const unitPrice = calculateUnitPrice(ex, newQty);
-      const updatedCart = [...cart];
-      updatedCart[exIndex] = {
+      const updatedItem = {
         ...ex,
         qty: newQty,
         sell_price: unitPrice,
       };
-      setCart(updatedCart);
+      const restCart = cart.filter((_, idx) => idx !== exIndex);
+      setCart([...restCart, updatedItem]);
     } else {
       const newQty = 1;
       const baseItem = {
@@ -940,7 +979,7 @@ export default function PosPage() {
     const ok = await resolveScannedCode(code);
     if (!ok) toast.error("Produk tidak ditemukan");
     e.target.value = "";
-    if (barcodeRef.current) barcodeRef.current.focus();
+    focusBarcodeInputs();
   }
 
   useEffect(() => {
@@ -1120,12 +1159,21 @@ export default function PosPage() {
             <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <ScanBarcode className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-400" />
               <input
-                ref={barcodeRef}
+                ref={desktopBarcodeRef}
                 inputMode="none"
-                autoFocus
+                virtualKeyboardPolicy="manual"
                 className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
                 placeholder="Klik & Scan Barcode..."
                 onKeyDown={handleBarcode}
+                onFocus={() => {
+                  if (typeof window !== "undefined" && "virtualKeyboard" in navigator) {
+                    try {
+                      navigator.virtualKeyboard.hide();
+                    } catch {
+                      /* */
+                    }
+                  }
+                }}
               />
               <button
                 type="button"
@@ -1214,12 +1262,21 @@ export default function PosPage() {
           <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 xl:hidden">
             <ScanBarcode className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-400" />
             <input
-              ref={barcodeRef}
+              ref={mobileBarcodeRef}
               inputMode="none"
-              autoFocus
+              virtualKeyboardPolicy="manual"
               className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
-              placeholder="Ketik & Scan Barcode..."
+              placeholder="Scan Barcode..."
               onKeyDown={handleBarcode}
+              onFocus={() => {
+                if (typeof window !== "undefined" && "virtualKeyboard" in navigator) {
+                  try {
+                    navigator.virtualKeyboard.hide();
+                  } catch {
+                    /* */
+                  }
+                }
+              }}
             />
             <button
               type="button"
@@ -1242,7 +1299,7 @@ export default function PosPage() {
               </span>
             </div>
 
-            <div className="max-h-[min(480px,58vh)] space-y-3 overflow-auto pr-1">
+            <div ref={cartContainerRef} className="max-h-[min(480px,58vh)] space-y-3 overflow-auto pr-1">
               {cart.length === 0 && (
                 <div className="py-10 text-center">
                   <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
