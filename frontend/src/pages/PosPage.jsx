@@ -23,6 +23,7 @@ import {
   Share2,
   Bluetooth,
   ShoppingBag,
+  Smartphone,
 } from "lucide-react";
 import Select from "react-select";
 import JsBarcode from "jsbarcode";
@@ -64,6 +65,38 @@ export default function PosPage() {
   const [productTotal, setProductTotal] = useState(0);
   const [inactiveHint, setInactiveHint] = useState(null);
   const [cart, setCart] = useState([]);
+
+  // Lock orientation portrait logic
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
+  const [dismissLandscapeNotice, setDismissLandscapeNotice] = useState(false);
+
+  useEffect(() => {
+    const lockPortrait = async () => {
+      try {
+        if (typeof window !== "undefined" && window.screen?.orientation?.lock) {
+          await window.screen.orientation.lock("portrait");
+        }
+      } catch {
+        /* Ignore browser restriction when not fullscreen */
+      }
+    };
+    lockPortrait();
+
+    const checkOrientation = () => {
+      const isMobileSize = window.innerWidth <= 1024;
+      const isLandscape = window.innerWidth > window.innerHeight;
+      setIsMobileLandscape(isMobileSize && isLandscape);
+    };
+
+    checkOrientation();
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
+
+    return () => {
+      window.removeEventListener("resize", checkOrientation);
+      window.removeEventListener("orientationchange", checkOrientation);
+    };
+  }, []);
   const [selectedVariantProduct, setSelectedVariantProduct] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [cashAccounts, setCashAccounts] = useState([]);
@@ -2202,6 +2235,39 @@ export default function PosPage() {
           </div>
         )}
       </Modal>
+
+      {/* Landscape Orientation Warning Overlay on Mobile */}
+      {isMobileLandscape && !dismissLandscapeNotice && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white">
+          <div className="w-20 h-20 rounded-3xl bg-brand-600/30 border border-brand-500 flex items-center justify-center mb-4 animate-bounce">
+            <Smartphone className="h-10 w-10 text-brand-400 rotate-90" />
+          </div>
+          <h3 className="text-2xl font-black mb-2">Putar Perangkat ke Mode Portrait</h3>
+          <p className="text-sm text-slate-300 max-w-sm mb-6 leading-relaxed">
+            Tampilan kasir dioptimalkan untuk posisi tegak (Portrait) agar tata letak tombol transaksi dan keranjang tidak bergeser saat digunakan.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.screen?.orientation?.lock) {
+                  window.screen.orientation.lock("portrait").catch(() => {});
+                }
+              }}
+              className="w-full py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 font-bold text-white shadow-lg transition active:scale-95 text-sm"
+            >
+              Kunci Mode Portrait
+            </button>
+            <button
+              type="button"
+              onClick={() => setDismissLandscapeNotice(true)}
+              className="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-slate-300 transition text-xs"
+            >
+              Lanjutkan (Tutup)
+            </button>
+          </div>
+        </div>
+      )}
     </PageStack>
   );
 }

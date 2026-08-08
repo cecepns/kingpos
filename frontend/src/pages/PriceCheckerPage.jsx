@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ShoppingCart, Scan, ImageOff, RefreshCw, ArrowLeft, Camera } from "lucide-react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../api/client";
 import { uploadSrc } from "../utils/uploadUrl";
 import { formatIDR } from "../utils/format";
@@ -12,10 +13,55 @@ export default function PriceCheckerPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [time, setTime] = useState("");
+  const [resetCountdown, setResetCountdown] = useState(null);
 
   const [cameraScanOpen, setCameraScanOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const inputRef = useRef(null);
+  const timerRef = useRef(null);
+  const intervalRef = useRef(null);
+
+  const clearAutoResetTimer = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    timerRef.current = null;
+    intervalRef.current = null;
+    setResetCountdown(null);
+  };
+
+  const handleReset = () => {
+    clearAutoResetTimer();
+    setData(null);
+    setError("");
+    setCode("");
+    if (inputRef.current) inputRef.current.focus();
+  };
+
+  const startAutoResetTimer = (seconds = 5) => {
+    clearAutoResetTimer();
+    setResetCountdown(seconds);
+
+    intervalRef.current = setInterval(() => {
+      setResetCountdown((prev) => {
+        if (prev <= 1) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          intervalRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    timerRef.current = setTimeout(() => {
+      handleReset();
+    }, seconds * 1000);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearAutoResetTimer();
+    };
+  }, []);
 
   // Clock timer
   useEffect(() => {
@@ -46,6 +92,8 @@ export default function PriceCheckerPage() {
     const query = String(searchCode || "").trim();
     if (!query) return;
 
+    clearAutoResetTimer();
+    setCode("");
     setLoading(true);
     setError("");
     try {
@@ -54,15 +102,17 @@ export default function PriceCheckerPage() {
         setData(null);
         setError(`Produk dengan barcode '${query}' tidak ditemukan dalam sistem.`);
         toast.error(`Produk '${query}' tidak ditemukan!`);
+        startAutoResetTimer(5);
       } else {
         setData(res.data);
-        setCode("");
+        startAutoResetTimer(5);
       }
     } catch (err) {
       setData(null);
       const errMsg = err.response?.data?.error || `Produk dengan barcode '${query}' tidak ditemukan dalam sistem`;
       setError(errMsg);
       toast.error(errMsg);
+      startAutoResetTimer(5);
     } finally {
       setLoading(false);
     }
@@ -196,16 +246,48 @@ export default function PriceCheckerPage() {
             <p className="text-xl font-bold tracking-wide text-brand-800">Mencari harga produk...</p>
           </div>
         ) : error ? (
-          <div className="bg-red-50 border-2 border-red-500 rounded-3xl p-8 max-w-xl w-full text-center shadow-xl animate-fade-in">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-300">
+          <div className="bg-red-50 border-2 border-red-500 rounded-3xl p-8 max-w-xl w-full text-center shadow-xl animate-fade-in space-y-4">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto border border-red-300">
               <Scan className="h-10 w-10 text-red-600" />
             </div>
-            <h2 className="text-2xl font-black text-red-900 mb-2">PRODUK TIDAK DITEMUKAN</h2>
-            <p className="text-slate-700 font-medium text-lg">{error}</p>
-            <p className="text-xs text-slate-500 mt-6">Silakan scan ulang atau periksa barcode produk kembali.</p>
+            <div>
+              <h2 className="text-2xl font-black text-red-900 mb-2">PRODUK TIDAK DITEMUKAN</h2>
+              <p className="text-slate-700 font-medium text-lg">{error}</p>
+            </div>
+            
+            <div className="pt-4 border-t border-red-200/80 flex flex-col items-center gap-3">
+              {resetCountdown !== null && (
+                <span className="text-xs font-semibold px-3 py-1 bg-red-100 text-red-800 rounded-full border border-red-300 inline-flex items-center gap-1.5">
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin text-red-600" />
+                  Otomatis kembalikan mode scan dalam <strong className="font-bold text-red-900">{resetCountdown}s</strong>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleReset}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition shadow active:scale-95"
+              >
+                <RefreshCw className="h-4 w-4" /> Reset & Scan Sekarang
+              </button>
+            </div>
           </div>
         ) : product ? (
-          <div className="bg-white rounded-3xl p-6 lg:p-8 max-w-5xl w-full shadow-xl text-slate-900 grid lg:grid-cols-12 gap-8 items-center border border-slate-200 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 lg:p-8 max-w-5xl w-full shadow-xl text-slate-900 grid lg:grid-cols-12 gap-8 items-center border border-slate-200 animate-fade-in relative">
+            {/* Auto reset top notification banner */}
+            <div className="lg:col-span-12 flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-2.5">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800">
+                <RefreshCw className="h-4 w-4 text-emerald-600 animate-spin" />
+                <span>Reset otomatis ke mode scan dalam {resetCountdown ?? 5} detik</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-xl text-xs transition shadow-sm active:scale-95"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Scan Lagi / Reset
+              </button>
+            </div>
+
             {/* Product Info Header (Tanpa Foto Produk) */}
             <div className="lg:col-span-5 flex flex-col justify-center items-start text-left border-b lg:border-b-0 lg:border-r border-slate-200 pb-6 lg:pb-0 lg:pr-6 space-y-3">
               <span className="bg-brand-100 text-brand-800 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
